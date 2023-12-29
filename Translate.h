@@ -6,7 +6,7 @@
 
 std::vector<std::string> translateApis = {
 	"Google translate",
-    "not working",
+    "dont select this one",
 };
 
 std::string urlEncode(std::string str) {
