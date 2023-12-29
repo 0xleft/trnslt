@@ -5,7 +5,11 @@
 #include <sstream>
 #include <iterator>
 #include "Languages.h"
+#include <regex>
 #include "Translate.h"
+#include <iostream>
+#include <regex>
+#include <string>
 
 BAKKESMOD_PLUGIN(trnslt, "trnslt", plugin_version, PERMISSION_ALL)
 
@@ -13,8 +17,9 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 void trnslt::onLoad() {
 	_globalCvarManager = cvarManager;
-    // create language selection
-    // add channel filter support
+    cvarManager->registerCvar("trnslt_translate_0", "1");
+    cvarManager->registerCvar("trnslt_translate_1", "1");
+    cvarManager->registerCvar("trnslt_translate_2", "1");
 
     cvarManager->registerCvar("trnslt_translate_api", "0", "transltae api index", false, true, 0, true, translateApis.size() - 1, true);
 
@@ -32,9 +37,11 @@ void trnslt::onLoad() {
 
         std::stringstream ss;
         for (size_t i = 0; i < params.size(); ++i) { if (i != 0) { ss << " "; } ss << params[i]; } // yeah :)
-        
-        // todo
-        // remove game chat translations
+
+        std::regex quickChatPattern("Group\\d+Message\\d+");
+        if (std::regex_match(ss.str(), quickChatPattern)) {
+            return;
+        }
 
         logTranslation(ss.str());
     }, "translate", PERMISSION_ALL);
@@ -71,12 +78,16 @@ void trnslt::HookChat() {
             ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
             if (chatMessage->PlayerName == nullptr) return;
             std::wstring playerName(chatMessage->PlayerName);
-            // if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
+            // todo
+            if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
             if (chatMessage->Message == nullptr) return;
             std::wstring message(chatMessage->Message);
             std::string bMessage(message.begin(), message.end());
 
-            LOG("Message: {}", bMessage);
+            if (chatMessage->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
+            if (chatMessage->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
+            if (chatMessage->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
+
             cvarManager->executeCommand(std::format("trnslt_translate {}", bMessage));
         }
     });
@@ -97,6 +108,7 @@ void trnslt::RenderSettings() {
     ImGui::Text(std::format("Last translated language: {}", this->transSrc).c_str());
     ImGui::Text(std::format("Last translated message: {}", this->trans).c_str());
 
+    ImGui::Separator();
     ImGui::Text("Select api being used");
     ImGui::Separator();
     for (int i = 0; i < translateApis.size(); i++) {
@@ -105,13 +117,34 @@ void trnslt::RenderSettings() {
         }
     }
 
+    ImGui::Separator();
+    ImGui::Text("Choose if chat type should be translated");
+    ImGui::Separator();
+    bool publicChat = cvarManager->getCvar("trnslt_translate_0").getBoolValue();
+    bool* publicChat_p = &publicChat;
+    if (ImGui::Checkbox("Public chat", publicChat_p)) {
+        cvarManager->getCvar("trnslt_translate_0").setValue(!cvarManager->getCvar("trnslt_translate_0").getBoolValue());
+    }
+
+    bool teamChat = cvarManager->getCvar("trnslt_translate_1").getBoolValue();
+    bool* teamChat_p = &teamChat;
+    if (ImGui::Checkbox("Team chat", teamChat_p)) {
+        cvarManager->getCvar("trnslt_translate_1").setValue(!cvarManager->getCvar("trnslt_translate_1").getBoolValue());
+    }
+
+    bool partyChat = cvarManager->getCvar("trnslt_translate_2").getBoolValue();
+    bool* partyChat_p = &partyChat;
+    if (ImGui::Checkbox("Party chat", partyChat_p)) {
+        cvarManager->getCvar("trnslt_translate_2").setValue(!cvarManager->getCvar("trnslt_translate_2").getBoolValue());
+    }
+
+
     ImGui::EndChild();
 
     ImGui::SameLine();
 
     ImGui::BeginChild("Select language");
     
-    // fontsize
     ImGui::Text("Select language to translate to");
     ImGui::Separator();
     for (auto item : languageCodes) {
