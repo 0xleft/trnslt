@@ -8,4 +8,4 @@ Plugin uses Google Translate but could be extended to use other apis
 
 Example translation where [LANG_CODE] trnslt is the translated text
 
-![image](https://github.com/0xleft/trnslt/assets/107749872/d79b6f87-c455-4143-adb0-d83a3a33dcd7)
+![image](https://github.com/0xleft/trnslt/assets/107749872/0504a702-6cfd-4548-ab00-ecacb1e2eb6c)
