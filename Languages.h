@@ -1,6 +1,7 @@
 #pragma once
 
 // https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+// generated using languages.py
 std::map<std::string, std::string> languageCodes = {
 	{"Abkhazian","ab"},
 	{"Afar","aa"},

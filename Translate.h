@@ -6,7 +6,6 @@
 
 std::vector<std::string> translateApis = {
 	"Google translate",
-    "dont select this one",
 };
 
 std::string urlEncode(std::string str) {
@@ -55,14 +54,14 @@ void trnslt::googleTranslate(std::string text) {
                 json sentence = sentences.at(i);
                 std::string trans(sentence["trans"]);
                 std::string orig(sentence["orig"]);
-                LOG("Trans: {}", trans);
+                // DEBUGLOG("Trans: {}", trans);
                 if (trans == orig) { continue; }
                 this->trans = trans;
                 this->transSrc = data["src"];
 
                 gameWrapper->Execute([this](GameWrapper* gw) {
                     gameWrapper->LogToChatbox(this->trans, std::format("[{}] trnslt", this->transSrc));
-                    });
+                });
             }
         }
         catch (std::exception e) {

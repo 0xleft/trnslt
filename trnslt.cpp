@@ -78,7 +78,6 @@ void trnslt::HookChat() {
             ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
             if (chatMessage->PlayerName == nullptr) return;
             std::wstring playerName(chatMessage->PlayerName);
-            // todo
             if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
             if (chatMessage->Message == nullptr) return;
             std::wstring message(chatMessage->Message);
@@ -108,7 +107,8 @@ void trnslt::RenderSettings() {
     ImGui::Text(std::format("Last translated language: {}", this->transSrc).c_str());
     ImGui::Text(std::format("Last translated message: {}", this->trans).c_str());
 
-    ImGui::Separator();
+    ImGui::InvisibleButton("1", ImVec2(10, 10));
+
     ImGui::Text("Select api being used");
     ImGui::Separator();
     for (int i = 0; i < translateApis.size(); i++) {
@@ -117,7 +117,8 @@ void trnslt::RenderSettings() {
         }
     }
 
-    ImGui::Separator();
+    ImGui::InvisibleButton("2", ImVec2(10, 10));
+
     ImGui::Text("Choose if chat type should be translated");
     ImGui::Separator();
     bool publicChat = cvarManager->getCvar("trnslt_translate_0").getBoolValue();
