@@ -55,7 +55,7 @@ void trnslt::HookChat() {
             ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
             if (chatMessage->PlayerName == nullptr) return;
             std::wstring playerName(chatMessage->PlayerName);
-            // if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
+            if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
             if (chatMessage->Message == nullptr) return;
 
             if (chatMessage->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
