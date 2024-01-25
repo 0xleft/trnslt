@@ -4,6 +4,18 @@
 #include <string>
 #include "trnslt.h"
 
+std::string wToString(wchar_t* string) {
+    std::wstring ws(string);
+	std::string str(ws.begin(), ws.end());
+	return str;
+}
+
+std::string toLower(std::string str) {
+	std::transform(str.begin(), str.end(), str.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+	return str;
+}
+
 std::vector<std::string> translateApis = {
 	"Google translate",
 };
@@ -42,11 +54,12 @@ bool stringReplace(std::string& str, const std::string& from, const std::string&
     return true;
 }
 
-void trnslt::googleTranslate(std::string text) {
+void trnslt::googleTranslate(ChatMessage* message) {
     CurlRequest req;
-    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(text));
+    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(wToString(message->Message)));
+    std::string playerName = wToString(message->PlayerName);
 
-    HttpWrapper::SendCurlRequest(req, [this](int code, std::string result) {
+    HttpWrapper::SendCurlRequest(req, [this, playerName](int code, std::string result) {
         try {
             json data = json::parse(result);
             json sentences = data["sentences"];
@@ -54,17 +67,15 @@ void trnslt::googleTranslate(std::string text) {
                 json sentence = sentences.at(i);
                 std::string trans(sentence["trans"]);
                 std::string orig(sentence["orig"]);
-                // DEBUGLOG("Trans: {}", trans);
-                if (trans == orig) { continue; }
-                this->trans = trans;
-                this->transSrc = data["src"];
+                std::string src(data["src"]);
+                if (toLower(trans) == toLower(orig)) { continue; }
 
-                gameWrapper->Execute([this](GameWrapper* gw) {
-                    gameWrapper->LogToChatbox(this->trans, std::format("[{}] trnslt", this->transSrc));
+                gameWrapper->Execute([this, src, trans, playerName](GameWrapper* gw) {
+                    gameWrapper->LogToChatbox(trans, std::format("[{}] {}", src, playerName, trans));
                 });
             }
         }
-        catch (std::exception e) {
+        catch (json::exception e) {
             LOG("{}", e.what());
         }
     });

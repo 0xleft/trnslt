@@ -23,29 +23,6 @@ void trnslt::onLoad() {
 
     cvarManager->registerCvar("trnslt_translate_api", "0", "transltae api index", false, true, 0, true, translateApis.size() - 1, true);
 
-	cvarManager->registerNotifier("trnslt_test", [this](std::vector<std::string> params) {
-		logTranslation("labas as krabas");
-	}, "", PERMISSION_ALL);
-
-    cvarManager->registerNotifier("trnslt_translate", [this](std::vector<std::string> params) {
-        if (params.size() < 2) {
-            LOG("usage: trnslt_translate <sentence>");
-            return;
-        }
-
-        params.erase(params.begin());
-
-        std::stringstream ss;
-        for (size_t i = 0; i < params.size(); ++i) { if (i != 0) { ss << " "; } ss << params[i]; } // yeah :)
-
-        std::regex quickChatPattern("Group\\d+Message\\d+");
-        if (std::regex_match(ss.str(), quickChatPattern)) {
-            return;
-        }
-
-        logTranslation(ss.str());
-    }, "translate", PERMISSION_ALL);
-
     cvarManager->registerCvar("trnslt_language_to", "en", "language to translate to", true, false, 0, false, 0, true);
     cvarManager->registerNotifier("trnslt_set_language_to", [this](std::vector<std::string> params) {
         if (params.size() < 2) {
@@ -78,16 +55,14 @@ void trnslt::HookChat() {
             ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
             if (chatMessage->PlayerName == nullptr) return;
             std::wstring playerName(chatMessage->PlayerName);
-            if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
+            // if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
             if (chatMessage->Message == nullptr) return;
-            std::wstring message(chatMessage->Message);
-            std::string bMessage(message.begin(), message.end());
 
             if (chatMessage->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
             if (chatMessage->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
             if (chatMessage->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
 
-            cvarManager->executeCommand(std::format("trnslt_translate {}", bMessage));
+            logTranslation(chatMessage);
         }
     });
 }
@@ -104,8 +79,6 @@ void trnslt::RenderSettings() {
     ImGui::Separator();
 
     ImGui::Text(std::format("Selected language: {}", cvarManager->getCvar("trnslt_language_to").getStringValue()).c_str());
-    ImGui::Text(std::format("Last translated language: {}", this->transSrc).c_str());
-    ImGui::Text(std::format("Last translated message: {}", this->trans).c_str());
 
     ImGui::InvisibleButton("1", ImVec2(10, 10));
 
@@ -156,13 +129,19 @@ void trnslt::RenderSettings() {
     ImGui::EndChild();
 }
 
-void trnslt::logTranslation(std::string text) {
+void trnslt::logTranslation(ChatMessage* message) {
+
+    if (message->Message == nullptr) return;
+    std::regex quickChatPattern("Group\\d+Message\\d+");
+    if (std::regex_match(wToString(message->Message), quickChatPattern)) {
+        return;
+    }
+
     switch (cvarManager->getCvar("trnslt_translate_api").getIntValue()) {
     case 0:
         // google
-        googleTranslate(text);
+        googleTranslate(message);
         break;
-
     default:
         break;
     }

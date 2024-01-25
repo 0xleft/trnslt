@@ -24,18 +24,14 @@ struct ChatMessage {
 
 class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
 {
-
-	std::string trans = "";
-	std::string transSrc = "";
-
 	void onLoad() override;
 	void onUnload() override;
 
 public:
 
-	void logTranslation(std::string text);
+	void logTranslation(ChatMessage* message);
 	void HookChat();
 	void UnHookChat();
 	void RenderSettings() override;
-	void googleTranslate(std::string text);
+	void googleTranslate(ChatMessage* message);
 };
