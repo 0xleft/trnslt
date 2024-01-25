@@ -12,3 +12,4 @@ If you encounter any issues please report them here: [issues](https://github.com
 
 ## Showcase
 
+![image](https://github.com/0xleft/trnslt/assets/107749872/72831383-8be5-4c6e-8daa-c26c41dedd01)
