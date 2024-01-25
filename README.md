@@ -4,10 +4,6 @@
 
 [Through bakkes plugins](https://bakkesplugins.com/plugins/view/413)
 
-Tired of not understanding what people are writing in rocketleague chat?
-
-Plugin uses Google Translate but could be extended to use other apis
-
 ## Settings
 
 ![image](https://github.com/0xleft/trnslt/assets/107749872/74444e6d-bf7a-4375-a24c-9b564d495558)
