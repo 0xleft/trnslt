@@ -132,6 +132,7 @@
     <ClInclude Include="GuiBase.h" />
     <ClInclude Include="Translate.h" />
     <ClInclude Include="trnslt.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>

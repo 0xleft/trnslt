@@ -54,17 +54,17 @@ bool stringReplace(std::string& str, const std::string& from, const std::string&
     return true;
 }
 
-void trnslt::googleTranslate(ChatMessage* message) {
+void trnslt::googleTranslate(ChatMessage1* message) {
     CurlRequest req;
     req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(wToString(message->Message)));
     std::string playerName = wToString(message->PlayerName);
 
     HttpWrapper::SendCurlRequest(req, [this, playerName](int code, std::string result) {
         try {
-            json data = json::parse(result);
-            json sentences = data["sentences"];
+            nlohmann::json data = nlohmann::json::parse(result);
+            nlohmann::json sentences = data["sentences"];
             for (int i = 0; i < sentences.size(); i++) {
-                json sentence = sentences.at(i);
+                nlohmann::json sentence = sentences.at(i);
                 std::string trans(sentence["trans"]);
                 std::string orig(sentence["orig"]);
                 std::string src(data["src"]);
@@ -75,7 +75,7 @@ void trnslt::googleTranslate(ChatMessage* message) {
                 });
             }
         }
-        catch (json::exception e) {
+        catch (nlohmann::json::exception e) {
             LOG("{}", e.what());
         }
     });

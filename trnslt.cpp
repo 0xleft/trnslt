@@ -17,6 +17,10 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 void trnslt::onLoad() {
 	_globalCvarManager = cvarManager;
+
+    cvarManager->registerCvar("trnslt_remove_message", "1");
+    cvarManager->registerCvar("trnslt_translate_own", "0");
+
     cvarManager->registerCvar("trnslt_translate_0", "1");
     cvarManager->registerCvar("trnslt_translate_1", "1");
     cvarManager->registerCvar("trnslt_translate_2", "1");
@@ -49,26 +53,49 @@ void trnslt::onUnload() {
 }
 
 void trnslt::HookChat() {
-    // https://github.com/Sei4or/QuickVoice/blob/master/QuickVoice/QuickVoice.cpp by @Sei4or
-    gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage", [this](ActorWrapper caller, void* params, std::string eventName) {
+    // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L509
+    gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
         if (params) {
-            ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
-            if (chatMessage->PlayerName == nullptr) return;
-            std::wstring playerName(chatMessage->PlayerName);
-            if (playerName == gameWrapper->GetPlayerName().ToWideString()) { return; }
-            if (chatMessage->Message == nullptr) return;
+            ChatMessage1* message = (ChatMessage1*)params;
+            if (message->PlayerName == nullptr) return;
+            if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
 
-            if (chatMessage->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
-            if (chatMessage->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
-            if (chatMessage->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
+            if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
+            if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
+            if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
 
-            logTranslation(chatMessage);
+            if (message->Message == nullptr) return;
+            // quickchats
+            std::regex quickChatPattern("Group\\d+Message\\d+");
+            if (std::regex_match(wToString(message->Message), quickChatPattern)) {
+                return;
+            }
+
+            if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
+                cancelMsg();
+			}
+
+            logTranslation(message);
         }
+
+        gameWrapper->HookEventWithCallerPost<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage", [this](ActorWrapper caller, void* params, ...) {
+            gameWrapper->UnhookEvent("Function TAGame.GFxData_Chat_TA.OnChatMessage");
+        });
+    });
+}
+
+// https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L495
+void trnslt::cancelMsg() {
+    gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
+        ChatMessage2* Params = (ChatMessage2*)params;
+        Params->Message = FS("");
+        Params->PlayerName = FS("");
+        Params->ChatChannel = 0;
     });
 }
 
 void trnslt::UnHookChat() {
-    gameWrapper->UnhookEvent("Function TAGame.HUDBase_TA.OnChatMessage");
+    gameWrapper->UnhookEvent("Function TAGame.GFxData_Chat_TA.OnChatMessage");
 }
 
 void trnslt::RenderSettings() {
@@ -112,6 +139,31 @@ void trnslt::RenderSettings() {
         cvarManager->getCvar("trnslt_translate_2").setValue(!cvarManager->getCvar("trnslt_translate_2").getBoolValue());
     }
 
+    ImGui::InvisibleButton("3", ImVec2(10, 10));
+
+    bool removeMessage = cvarManager->getCvar("trnslt_remove_message").getBoolValue();
+    bool* removeMessage_p = &removeMessage;
+    if (ImGui::Checkbox("Remove message", removeMessage_p)) {
+		cvarManager->getCvar("trnslt_remove_message").setValue(!cvarManager->getCvar("trnslt_remove_message").getBoolValue());
+	}
+
+    bool translateOwn = cvarManager->getCvar("trnslt_translate_own").getBoolValue();
+    bool* translateOwn_p = &translateOwn;
+    if (ImGui::Checkbox("Translate own messages", translateOwn_p)) {
+		cvarManager->getCvar("trnslt_translate_own").setValue(!cvarManager->getCvar("trnslt_translate_own").getBoolValue());
+	}
+
+    ImGui::InvisibleButton("3", ImVec2(10, 10));
+
+    if (ImGui::Button("Reset settings")) {
+		cvarManager->getCvar("trnslt_translate_0").setValue(true);
+		cvarManager->getCvar("trnslt_translate_1").setValue(true);
+		cvarManager->getCvar("trnslt_translate_2").setValue(true);
+		cvarManager->getCvar("trnslt_translate_api").setValue(0);
+		cvarManager->getCvar("trnslt_language_to").setValue("en");
+        cvarManager->getCvar("trnslt_remove_message").setValue(true);
+        cvarManager->getCvar("trnslt_translate_own").setValue(false);
+	}
 
     ImGui::EndChild();
 
@@ -121,7 +173,7 @@ void trnslt::RenderSettings() {
     
     ImGui::Text("Select language to translate to");
     ImGui::Separator();
-    for (auto item : languageCodes) {
+    for (std::pair<std::string, std::string> item : languageCodes) {
         if (ImGui::Selectable(item.first.c_str())) {
             cvarManager->getCvar("trnslt_language_to").setValue(item.second);
         }
@@ -129,13 +181,7 @@ void trnslt::RenderSettings() {
     ImGui::EndChild();
 }
 
-void trnslt::logTranslation(ChatMessage* message) {
-
-    if (message->Message == nullptr) return;
-    std::regex quickChatPattern("Group\\d+Message\\d+");
-    if (std::regex_match(wToString(message->Message), quickChatPattern)) {
-        return;
-    }
+void trnslt::logTranslation(ChatMessage1* message) {
 
     switch (cvarManager->getCvar("trnslt_translate_api").getIntValue()) {
     case 0:
