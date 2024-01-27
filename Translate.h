@@ -68,9 +68,10 @@ void trnslt::googleTranslate(ChatMessage1* message) {
                 std::string trans(sentence["trans"]);
                 std::string orig(sentence["orig"]);
                 std::string src(data["src"]);
-                if (toLower(trans) == toLower(orig)) { continue; }
 
-                gameWrapper->Execute([this, src, trans, playerName](GameWrapper* gw) {
+                gameWrapper->Execute([this, orig, src, trans, playerName](GameWrapper* gw) {
+                    if (toLower(trans) == toLower(orig) && !cvarManager->getCvar("trnslt_remove_message").getBoolValue()) { return; }
+                    
                     gameWrapper->LogToChatbox(trans, std::format("[{}] {}", src, playerName, trans));
                 });
             }
