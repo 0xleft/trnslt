@@ -18,6 +18,8 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 void trnslt::onLoad() {
 	_globalCvarManager = cvarManager;
 
+    cvarManager->registerCvar("trnslt_should_show_match_log", "0");
+
     cvarManager->registerCvar("trnslt_remove_message", "1");
     cvarManager->registerCvar("trnslt_translate_own", "0");
 
@@ -46,10 +48,22 @@ void trnslt::onLoad() {
     }, "set transltate to language", PERMISSION_ALL);
 
     this->HookChat();
+    this->HookGameStart();
+}
+
+void trnslt::HookGameStart() {
+    gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame", [this](std::string eventName) {
+        this->logMessages.clear();
+    });
+}
+
+void trnslt::UnhookGameStart() {
+	gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame");
 }
 
 void trnslt::onUnload() {
     this->UnHookChat();
+    this->UnhookGameStart();
 }
 
 void trnslt::HookChat() {
@@ -155,15 +169,27 @@ void trnslt::RenderSettings() {
 
     ImGui::InvisibleButton("3", ImVec2(10, 10));
 
+    if (ImGui::Button(cvarManager->getCvar("trnslt_should_show_match_log").getBoolValue() ? "Close match log" : "Open match log")) {
+        cvarManager->getCvar("trnslt_should_show_match_log").setValue(!cvarManager->getCvar("trnslt_should_show_match_log").getBoolValue());
+    }
+
+    if (ImGui::Button("Reset match log")) {
+		this->logMessages.clear();
+	}
+
+    if (cvarManager->getCvar("trnslt_should_show_match_log").getBoolValue()) {
+		this->drawMessageLog();
+	}
+
     if (ImGui::Button("Reset settings")) {
-		cvarManager->getCvar("trnslt_translate_0").setValue(true);
-		cvarManager->getCvar("trnslt_translate_1").setValue(true);
-		cvarManager->getCvar("trnslt_translate_2").setValue(true);
-		cvarManager->getCvar("trnslt_translate_api").setValue(0);
-		cvarManager->getCvar("trnslt_language_to").setValue("en");
+        cvarManager->getCvar("trnslt_translate_0").setValue(true);
+        cvarManager->getCvar("trnslt_translate_1").setValue(true);
+        cvarManager->getCvar("trnslt_translate_2").setValue(true);
+        cvarManager->getCvar("trnslt_translate_api").setValue(0);
+        cvarManager->getCvar("trnslt_language_to").setValue("en");
         cvarManager->getCvar("trnslt_remove_message").setValue(true);
         cvarManager->getCvar("trnslt_translate_own").setValue(false);
-	}
+    }
 
     ImGui::EndChild();
 
@@ -179,6 +205,16 @@ void trnslt::RenderSettings() {
         }
     }
     ImGui::EndChild();
+}
+
+void trnslt::drawMessageLog() {
+    bool shouldShow = cvarManager->getCvar("trnslt_should_show_match_log").getBoolValue();
+    bool* shouldShow_p = &shouldShow;
+    ImGui::Begin("Match log", shouldShow_p, ImGuiWindowFlags_AlwaysAutoResize);
+    for (auto& msg : this->logMessages) {
+		ImGui::Text(std::format("[{}] {}", msg.playerName, msg.originalMessage).c_str());
+	}
+    ImGui::End();
 }
 
 void trnslt::logTranslation(ChatMessage1* message) {

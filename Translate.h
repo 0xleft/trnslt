@@ -71,7 +71,8 @@ void trnslt::googleTranslate(ChatMessage1* message) {
 
                 gameWrapper->Execute([this, orig, src, trans, playerName](GameWrapper* gw) {
                     if (toLower(trans) == toLower(orig) && !cvarManager->getCvar("trnslt_remove_message").getBoolValue()) { return; }
-                    
+                    this->logMessages.push_back({ orig, playerName });
+
                     gameWrapper->LogToChatbox(trans, std::format("[{}] {}", src, playerName, trans));
                 });
             }

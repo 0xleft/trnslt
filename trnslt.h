@@ -32,8 +32,15 @@ struct ChatMessage2 {
 	uint8_t MessageType;
 };
 
+struct LogMessage {
+	std::string originalMessage;
+	std::string playerName;
+};
+
 class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
 {
+
+	std::vector<LogMessage> logMessages;
 	void onLoad() override;
 	void onUnload() override;
 
@@ -45,4 +52,7 @@ public:
 	void RenderSettings() override;
 	void googleTranslate(ChatMessage1* message);
 	void cancelMsg();
+	void HookGameStart();
+	void UnhookGameStart();
+	void drawMessageLog();
 };
