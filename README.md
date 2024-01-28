@@ -6,7 +6,7 @@
 
 ## Settings
 
-![image](https://github.com/0xleft/trnslt/assets/107749872/74444e6d-bf7a-4375-a24c-9b564d495558)
+![image](https://github.com/0xleft/trnslt/assets/107749872/c69e1fb3-2c13-43a6-ae56-a0f7c2b738f3)
 
 ## Showcase
 
