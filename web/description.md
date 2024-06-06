@@ -10,6 +10,11 @@ If you encounter any issues please report them here: [issues](https://github.com
 
 ## Changes
 
+1.0.3
+
+- Prevent from messages not being shown
+- Add chat log to see what messages have been translated
+
 1.0.2
 
 - Clean up again
