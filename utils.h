@@ -39,6 +39,15 @@ public:
     ~FString() {}
 
 public:
+	std::wstring ToWideString() const
+	{
+		if (!IsValid())
+		{
+			return std::wstring(ArrayData);
+		}
+		return std::wstring();
+	}
+
     std::string ToString() const
     {
         if (!IsValid())
@@ -48,7 +57,7 @@ public:
             return str;
         }
 
-        return std::string("null");
+        return std::string();
     }
 
     bool IsValid() const

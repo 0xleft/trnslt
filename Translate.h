@@ -65,15 +65,21 @@ void trnslt::googleTranslate(ChatMessage1* message) {
             nlohmann::json sentences = data["sentences"];
             for (int i = 0; i < sentences.size(); i++) {
                 nlohmann::json sentence = sentences.at(i);
-                std::string trans(sentence["trans"]);
+				std::wstring trans = utf8ToWstring(sentence["trans"]);
                 std::string orig(sentence["orig"]);
                 std::string src(data["src"]);
 
+				if (cvarManager->getCvar("trnslt_should_transliterate").getBoolValue()) {
+                    cvarManager->log(std::format("{}", trans.size()));
+                    trans = this->pack.transliterate(trans, cvarManager->getCvar("trnslt_language_to").getStringValue());
+                    cvarManager->log(trans);
+                }
+
                 gameWrapper->Execute([this, orig, src, trans, playerName](GameWrapper* gw) {
-                    if (toLower(trans) == toLower(orig) && !cvarManager->getCvar("trnslt_remove_message").getBoolValue()) { return; }
+                    if (toLower(std::string(trans.begin(), trans.end())) == toLower(orig) && !cvarManager->getCvar("trnslt_remove_message").getBoolValue()) { return; }
                     this->logMessages.push_back({ orig, playerName });
 
-                    gameWrapper->LogToChatbox(trans, std::format("[{}] {}", src, playerName, trans));
+                    gameWrapper->LogToChatbox(std::string(trans.begin(), trans.end()), std::format("[{}] {}", src, playerName));
                 });
             }
         }

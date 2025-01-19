@@ -18,6 +18,8 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 void trnslt::onLoad() {
 	_globalCvarManager = cvarManager;
 
+    cvarManager->registerCvar("trnslt_should_transliterate", "0");
+
     cvarManager->registerCvar("trnslt_should_show_match_log", "0");
 
     cvarManager->registerCvar("trnslt_remove_message", "1");
@@ -166,6 +168,12 @@ void trnslt::RenderSettings() {
     if (ImGui::Checkbox("Translate own messages", translateOwn_p)) {
 		cvarManager->getCvar("trnslt_translate_own").setValue(!cvarManager->getCvar("trnslt_translate_own").getBoolValue());
 	}
+
+    bool transliterate = cvarManager->getCvar("trnslt_should_transliterate").getBoolValue();
+    bool* transliterate_p = &transliterate;
+    if (ImGui::Checkbox("Transliterate text", transliterate_p)) {
+        cvarManager->getCvar("trnslt_should_transliterate").setValue(!cvarManager->getCvar("trnslt_should_transliterate").getBoolValue());
+    }
 
     ImGui::InvisibleButton("3", ImVec2(10, 10));
 

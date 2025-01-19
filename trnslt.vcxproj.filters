@@ -34,6 +34,9 @@
     <Filter Include="Plugin\src">
       <UniqueIdentifier>{33ae5c6a-718c-410e-bdb8-9c032f65c710}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Plugin\transliteration">
+      <UniqueIdentifier>{2e352d46-c168-4787-af50-9f0c34e4debd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp">
@@ -149,10 +152,24 @@
     <ClInclude Include="utils.h">
       <Filter>Plugin\src</Filter>
     </ClInclude>
+    <ClInclude Include="lang.hpp">
+      <Filter>Plugin\transliteration</Filter>
+    </ClInclude>
+    <ClInclude Include="russian.hpp">
+      <Filter>Plugin\transliteration</Filter>
+    </ClInclude>
+    <ClInclude Include="pack.hpp">
+      <Filter>Plugin\transliteration</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="trnslt.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

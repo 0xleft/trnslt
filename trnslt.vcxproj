@@ -118,6 +118,7 @@
     <ClCompile Include="GuiBase.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="lang.hpp" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imguivariouscontrols.h" />
@@ -134,8 +135,10 @@
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="Languages.h" />
     <ClInclude Include="logging.h" />
+    <ClInclude Include="pack.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="GuiBase.h" />
+    <ClInclude Include="russian.hpp" />
     <ClInclude Include="Translate.h" />
     <ClInclude Include="trnslt.h" />
     <ClInclude Include="utils.h" />
@@ -143,6 +146,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="trnslt.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

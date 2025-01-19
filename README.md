@@ -14,3 +14,7 @@
 
 
 ![image](https://github.com/0xleft/trnslt/assets/107749872/0504a702-6cfd-4548-ab00-ecacb1e2eb6c)
+
+## Thank you
+
+Thank you to https://github.com/barseghyanartur/transliterate/ project. Transliterate module in this project is basicaly a port of that project to c++;

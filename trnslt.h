@@ -6,6 +6,7 @@
 #include "bakkesmod/plugin/PluginSettingsWindow.h"
 #include <nlohmann/json.hpp>
 #include <utils.h> 
+#include "pack.hpp"
 
 #include "version.h"
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
@@ -39,6 +40,7 @@ struct LogMessage {
 
 class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
 {
+	transliteration::TransliterationPack pack;
 
 	std::vector<LogMessage> logMessages;
 	void onLoad() override;
