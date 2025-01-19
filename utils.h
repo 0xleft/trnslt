@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 
+// hippity hoppity i copyti this from https://github.com/JulienML/BetterChat/commit/dedb44e8e543eb4b40e404257b4ef123404617f1?diff=split#diff-c2a4ceabc49cd85b048435a7850490d7fab95a64ffc33a813b02b6eebf8b14b4
+// gracie mille
+
 struct FString
 {
 public:
@@ -94,3 +97,34 @@ FString FS(const std::string& s) {
     p[s.size()] = '\0';
     return FString(p);
 }
+
+struct FSceNpOnlineId
+{
+    uint64_t                                           Data[0x2];                                        		// 0x0000 (0x0010) [0x0000000000000000]               
+    uint8_t                                            Term;                                             		// 0x0010 (0x0001) [0x0000000000000000]               
+    uint8_t                                            Dummy[0x3];                                       		// 0x0011 (0x0003) [0x0000000000000000]               
+};
+struct FSceNpId
+{
+    struct FSceNpOnlineId                              Handle;                                           		// 0x0000 (0x0018) [0x0000000000000002] (CPF_Const)   
+    uint64_t                                           Opt;                                              		// 0x0018 (0x0008) [0x0000000000000002] (CPF_Const)   
+    uint64_t                                           Reserved;                                         		// 0x0020 (0x0008) [0x0000000000000002] (CPF_Const)   
+};
+struct FUniqueNetId
+{
+    uint64_t                                           Uid;                                              		// 0x0000 (0x0008) [0x0000000000000000]               
+    struct FSceNpId                                    NpId;                                             		// 0x0008 (0x0028) [0x0000000000000000]               
+    struct FString                                     EpicAccountId;                                    		// 0x0030 (0x0010) [0x0000000000400000] (CPF_NeedCtorLink)
+    uint8_t                                            Platform;                                         		// 0x0040 (0x0001) [0x0000000000000000]               
+    uint8_t                                            SplitscreenID;                                    		// 0x0041 (0x0001) [0x0000000000000000]               
+};
+struct FGFxChatMessage {
+    int32_t Team;
+    class FString PlayerName;
+    class FString Message;
+    uint8_t ChatChannel;
+    bool bLocalPlayer : 1;
+    struct FUniqueNetId SenderID;
+    uint8_t MessageType;
+    class FString TimeStamp;
+};

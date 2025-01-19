@@ -103,9 +103,10 @@ void trnslt::HookChat() {
 // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L495
 void trnslt::cancelMsg() {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
-        ChatMessage2* Params = (ChatMessage2*)params;
+        FGFxChatMessage* Params = (FGFxChatMessage*)params;
         Params->Message = FS("");
         Params->PlayerName = FS("");
+        Params->TimeStamp = FS("");
         Params->ChatChannel = 0;
     });
 }
