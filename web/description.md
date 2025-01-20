@@ -10,6 +10,15 @@ If you encounter any issues please report them here: [issues](https://github.com
 
 ## Changes
 
+1.0.5
+
+- Fix team color for translated chat
+
+1.0.4
+
+- Fix timestamps being shown
+- Add transliteration for Russian (more to be added later)
+
 1.0.3
 
 - Prevent from messages not being shown

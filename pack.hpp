@@ -1,4 +1,4 @@
-// not this is basicaly a port of https://github.com/barseghyanartur/transliterate/ for c++
+// note this is basicaly a port of https://github.com/barseghyanartur/transliterate/ for c++
 
 #include "lang.hpp"
 #include "russian.hpp"

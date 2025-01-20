@@ -68,8 +68,14 @@ void trnslt::googleTranslate(ChatMessage1* message) {
     CurlRequest req;
     req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(wToString(message->Message)));
     std::string playerName = wToString(message->PlayerName);
+    uint8_t chat = message->ChatChannel;
+    uint8_t teamNum = 0;
+    TeamWrapper team = TeamWrapper(reinterpret_cast<uintptr_t>(message->Team));
+    if (!team.IsNull()) {
+		teamNum = team.GetTeamNum();
+    }
 
-    HttpWrapper::SendCurlRequest(req, [this, playerName](int code, std::string result) {
+    HttpWrapper::SendCurlRequest(req, [this, chat, playerName, teamNum](int code, std::string result) {
         try {
             nlohmann::json data = nlohmann::json::parse(result);
             nlohmann::json sentences = data["sentences"];
@@ -80,15 +86,14 @@ void trnslt::googleTranslate(ChatMessage1* message) {
                 std::string src(data["src"]);
 
 				if (cvarManager->getCvar("trnslt_should_transliterate").getBoolValue()) {
-                    cvarManager->log(std::format("{}", trans.size()));
                     trans = this->pack.transliterate(trans, cvarManager->getCvar("trnslt_language_to").getStringValue());
-                    cvarManager->log(trans);
                 }
 
-                gameWrapper->Execute([this, orig, src, trans, playerName](GameWrapper* gw) {
+                gameWrapper->Execute([this, orig, src, chat, trans, playerName, teamNum](GameWrapper* gw) {
                     if (toLower(std::string(trans.begin(), trans.end())) == toLower(orig) && !cvarManager->getCvar("trnslt_remove_message").getBoolValue()) { return; }
-                    this->logMessages.push_back({ orig, playerName });
+                    this->logMessages.push_back({ orig, std::string(trans.begin(), trans.end()), chat, playerName });
 
+                    this->toFixQueue.push_back({ orig, std::string(trans.begin(), trans.end()), chat, std::format("[{}] {}", src, playerName), teamNum });
                     gameWrapper->LogToChatbox(std::string(trans.begin(), trans.end()), std::format("[{}] {}", src, playerName));
                 });
             }

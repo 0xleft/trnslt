@@ -44,6 +44,7 @@ void trnslt::onLoad() {
         if (it != languageCodes.end()) {
             cvarManager->getCvar("trnslt_language_to").setValue(langCode);
         } else {
+			cvarManager->getCvar("trnslt_language_to").setValue("en");
             LOG("Language code: \"{}\" not found", langCode);
         }
 
@@ -51,11 +52,14 @@ void trnslt::onLoad() {
 
     this->HookChat();
     this->HookGameStart();
+    this->alterMsg();
 }
 
 void trnslt::HookGameStart() {
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame", [this](std::string eventName) {
+        this->toCancelQueue.clear();
         this->logMessages.clear();
+        this->toFixQueue.clear();
     });
 }
 
@@ -76,6 +80,8 @@ void trnslt::HookChat() {
             if (message->PlayerName == nullptr) return;
             if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
 
+			cvarManager->log(std::format("ChatChannel: {}", message->ChatChannel));
+
             if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
             if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
             if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
@@ -87,31 +93,53 @@ void trnslt::HookChat() {
                 return;
             }
 
-            if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
-                cancelMsg();
+			if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
+				this->toCancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
 			}
 
             logTranslation(message);
         }
-
-        gameWrapper->HookEventWithCallerPost<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage", [this](ActorWrapper caller, void* params, ...) {
-            gameWrapper->UnhookEvent("Function TAGame.GFxData_Chat_TA.OnChatMessage");
-        });
     });
 }
 
 // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L495
-void trnslt::cancelMsg() {
+void trnslt::alterMsg () {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
-        FGFxChatMessage* Params = (FGFxChatMessage*)params;
-        Params->Message = FS("");
-        Params->PlayerName = FS("");
-        Params->TimeStamp = FS("");
-        Params->ChatChannel = 0;
+        FGFxChatMessage* message = (FGFxChatMessage*)params;
+        if (!message) return;
+
+        if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
+            // check for message queue todo
+            auto it = std::find_if(this->toCancelQueue.begin(), this->toCancelQueue.end(), [message](LogMessage& logMessage) {
+				return logMessage.originalMessage == message->Message.ToString() && logMessage.playerName == message->PlayerName.ToString();
+			});
+
+            if (it != this->toCancelQueue.end()) {
+                message->Message = FS("");
+                message->PlayerName = FS("");
+                message->TimeStamp = FS("");
+                message->ChatChannel = 0;
+
+				this->toCancelQueue.erase(it);
+                return;
+            }
+        }
+
+        auto it = std::find_if(this->toFixQueue.begin(), this->toFixQueue.end(), [message](LogMessage& logMessage) {
+            return logMessage.translatedMessage == message->Message.ToString() && logMessage.playerName == message->PlayerName.ToString();
+        });
+
+		if (it != this->toFixQueue.end()) {
+            message->ChatChannel = it->chatChannel;
+            message->Team = it->team;
+
+			this->toFixQueue.erase(it);
+		}
     });
 }
 
 void trnslt::UnHookChat() {
+	gameWrapper->UnhookEvent("Function TAGame.HUDBase_TA.OnChatMessage");
     gameWrapper->UnhookEvent("Function TAGame.GFxData_Chat_TA.OnChatMessage");
 }
 
