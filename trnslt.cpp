@@ -80,8 +80,6 @@ void trnslt::HookChat() {
             if (message->PlayerName == nullptr) return;
             if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
 
-			cvarManager->log(std::format("ChatChannel: {}", message->ChatChannel));
-
             if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
             if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
             if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
