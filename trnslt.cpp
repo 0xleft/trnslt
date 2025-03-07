@@ -17,6 +17,8 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 void trnslt::onLoad() {
 	_globalCvarManager = cvarManager;
+    cvarManager->log("current map: " + gameWrapper->GetCurrentMap());
+
 
     cvarManager->registerCvar("trnslt_should_transliterate", "0");
 
@@ -85,11 +87,7 @@ void trnslt::HookChat() {
             if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
 
             if (message->Message == nullptr) return;
-            // quickchats
-            std::regex quickChatPattern("Group\\d+Message\\d+");
-            if (std::regex_match(wToString(message->Message), quickChatPattern)) {
-                return;
-            }
+            if (message->bPreset) return;
 
 			if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
 				this->toCancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
