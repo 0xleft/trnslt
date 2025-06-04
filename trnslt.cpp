@@ -11,6 +11,9 @@
 #include <iostream>
 #include <regex>
 #include <string>
+#include <fstream>
+
+using namespace nlohmann;
 
 BAKKESMOD_PLUGIN(trnslt, "trnslt", plugin_version, PERMISSION_ALL)
 
@@ -19,20 +22,7 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 void trnslt::onLoad() {
     _globalCvarManager = cvarManager;
 
-    Settings::Transliterate = cvarManager->registerCvar("trnslt_should_transliterate", "0").getBoolValue();
-
-    Settings::ShowMatchLog = cvarManager->registerCvar("trnslt_should_show_match_log", "0").getBoolValue();
-
-    Settings::RemoveMessage = cvarManager->registerCvar("trnslt_remove_message", "1").getBoolValue();
-    Settings::TranslateLocalPlayer = cvarManager->registerCvar("trnslt_translate_own", "0").getBoolValue();
-
-    Settings::TranslatePublicChat = cvarManager->registerCvar("trnslt_translate_0", "1").getBoolValue();
-    Settings::TranslateTeamChat = cvarManager->registerCvar("trnslt_translate_1", "1").getBoolValue();
-    Settings::TranslatePartyChat = cvarManager->registerCvar("trnslt_translate_2", "1").getBoolValue();
-
-    Settings::TranslateApiIndex = cvarManager->registerCvar("trnslt_translate_api", "0", "transltae api index", false, true, 0, true, translateApis.size() - 1, true).getIntValue();
-
-    Settings::TranslateToLanguage = cvarManager->registerCvar("trnslt_language_to", "en", "language to translate to", true, false, 0, false, 0, true).getStringValue();
+    this->LoadSettings();
 
     cvarManager->registerNotifier("trnslt_set_language_to", [this](std::vector<std::string> params) {
         if (params.size() < 2) {
@@ -71,20 +61,7 @@ void trnslt::UnhookGameStart() {
 
 void trnslt::onUnload() {
     // Set CVars
-    cvarManager->getCvar("trnslt_should_transliterate").setValue(Settings::Transliterate);
-
-    cvarManager->getCvar("trnslt_should_show_match_log").setValue(Settings::ShowMatchLog);
-
-    cvarManager->getCvar("trnslt_remove_message").setValue(Settings::RemoveMessage);
-    cvarManager->getCvar("trnslt_translate_own").setValue(Settings::TranslateLocalPlayer);
-
-    cvarManager->getCvar("trnslt_translate_0").setValue(Settings::TranslatePublicChat);
-    cvarManager->getCvar("trnslt_translate_1").setValue(Settings::TranslateTeamChat);
-    cvarManager->getCvar("trnslt_translate_2").setValue(Settings::TranslatePartyChat);
-
-    cvarManager->getCvar("trnslt_translate_api").setValue(Settings::TranslateApiIndex);
-
-    cvarManager->getCvar("trnslt_language_to").setValue(Settings::TranslateToLanguage);
+    this->SaveSettings();
 
     this->UnHookChat();
     this->UnhookGameStart();
@@ -171,6 +148,7 @@ void trnslt::RenderSettings() {
     ImGui::EndChild();
 
     float baseHeight = ImGui::GetContentRegionAvail().y;
+    float baseWidth = ImGui::GetContentRegionAvail().x;
 
     ImGui::BeginChild("Language", ImVec2(250, baseHeight), true);
     {
@@ -213,6 +191,7 @@ void trnslt::RenderSettings() {
                     if (ImGui::Selectable(std::string(lang.first).c_str(), isSelected))
                     {
                         Settings::TranslateToLanguage = lang.second;
+                        this->SearchBuffer = "";
                     }
 
                     if (isSelected)
@@ -264,6 +243,21 @@ void trnslt::RenderSettings() {
             Settings::TranslateLocalPlayer = false;
         }
     }ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    //ImGui::SetCursorPosY(21);
+    ImGui::BeginChild("Message Log", ImVec2(baseWidth - ImGui::GetCursorPosX(), 89 + baseHeight), true);
+    {
+        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() / 2 - (ImGui::CalcTextSize("Chat Message Log").x / 2));
+        ImGui::Text("Chat Message Log");
+
+        ImGui::Separator();
+
+        for (auto& msg : this->logMessages) {
+            ImGui::Text(std::format("[{}] {}", msg.playerName, msg.originalMessage).c_str());
+        }
+    }ImGui::EndChild();
 }
 
 void trnslt::drawMessageLog() {
@@ -274,11 +268,95 @@ void trnslt::drawMessageLog() {
     ImGui::End();
 }
 
+void trnslt::SaveSettings()
+{
+    std::filesystem::path latestSavePath = gameWrapper->GetDataFolder() / "Translate" / "LatestSave.json";
+
+    if (!std::filesystem::exists(latestSavePath.parent_path()))
+    {
+        std::filesystem::create_directories(latestSavePath.parent_path());
+    }
+
+    json saveData;
+
+    saveData["LanguageCode"] = Settings::TranslateToLanguage;
+    saveData["TranlateApiIndex"] = Settings::TranslateApiIndex;
+    saveData["TranslateLocalPlayer"] = Settings::TranslateLocalPlayer;
+    saveData["Transliterate"] = Settings::Transliterate;
+
+    saveData["Chat"]["RemoveMessage"] = Settings::RemoveMessage;
+    saveData["Chat"]["PublicChat"] = Settings::TranslatePublicChat;
+    saveData["Chat"]["TeamChat"] = Settings::TranslateTeamChat;
+    saveData["Chat"]["PartyChat"] = Settings::TranslatePartyChat;
+
+    std::ofstream outFile(latestSavePath);
+
+    if (outFile.is_open())
+    {
+        outFile << saveData.dump(4);
+        outFile.close();
+        LOG("Saved Settings!");
+    }
+    else
+    {
+        LOG("Failed to open file for saving: {}", latestSavePath.string());
+    }
+}
+
+void trnslt::LoadSettings()
+{
+    std::filesystem::path latestSavePath = gameWrapper->GetDataFolder() / "Translate" / "LatestSave.json";
+
+    json saveData;
+
+    if (!std::filesystem::exists(latestSavePath))
+    {
+        LOG("No latest save file found, using default settings.");
+        return;
+    }
+
+    std::ifstream inFile(latestSavePath);
+
+    json data = json::parse(inFile, nullptr, true);
+
+    if (data.is_null())
+    {
+        LOG("Failed to parse latest save file.");
+        return;
+    }
+
+    if (data.contains("LanguageCode"))
+        Settings::TranslateToLanguage = data["LanguageCode"];
+
+    if (data.contains("TranlateApiIndex"))
+        Settings::TranslateApiIndex = data["TranlateApiIndex"];
+
+    if (data.contains("TranslateLocalPlayer"))
+        Settings::TranslateLocalPlayer = data["TranslateLocalPlayer"];
+
+    if (data.contains("Transliterate"))
+        Settings::Transliterate = data["Transliterate"];
+
+    if (data.contains("Chat"))
+    {
+        if (data["Chat"].contains("RemoveMessage"))
+            Settings::RemoveMessage = data["Chat"]["RemoveMessage"];
+        if (data["Chat"].contains("PublicChat"))
+            Settings::TranslatePublicChat = data["Chat"]["PublicChat"];
+        if (data["Chat"].contains("TeamChat"))
+            Settings::TranslateTeamChat = data["Chat"]["TeamChat"];
+        if (data["Chat"].contains("PartyChat"))
+            Settings::TranslatePartyChat = data["Chat"]["PartyChat"];
+    }
+
+    inFile.close();
+    LOG("Loaded Latest Save.");
+}
+
 void trnslt::logTranslation(ChatMessage1* message) {
 
     switch (Settings::TranslateApiIndex) {
     case 0:
-        // google
         googleTranslate(message);
         break;
     default:

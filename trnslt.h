@@ -61,6 +61,9 @@ public:
 	void HookGameStart();
 	void UnhookGameStart();
 	void drawMessageLog();
+
+	void SaveSettings();
+	void LoadSettings();
 private:
 	std::string SearchBuffer = "";
 };
