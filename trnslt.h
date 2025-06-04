@@ -34,33 +34,34 @@ struct ChatMessage2 {
 };
 
 struct LogMessage {
-	std::string originalMessage;
-	std::string translatedMessage;
-	uint8_t chatChannel;
-	std::string playerName;
-	uint8_t team = 0;
+	std::string OriginalMessage;
+	std::string TranslatedMessage;
+	uint8_t ChatChannel;
+	std::string PlayerName;
+	uint8_t Team = 0;
 };
 
 class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
 {
 	transliteration::TransliterationPack pack;
 
-	std::vector<LogMessage> logMessages;
-	std::vector<LogMessage> toCancelQueue;
-	std::vector<LogMessage> toFixQueue;
+	std::vector<LogMessage> LogMessages;
+	std::vector<LogMessage> CancelQueue;
+	std::vector<LogMessage> FixQueue;
 	void onLoad() override;
 	void onUnload() override;
 
 public:
 	void logTranslation(ChatMessage1* message);
-	void HookChat();
-	void UnHookChat();
-	void RenderSettings() override;
-	void googleTranslate(ChatMessage1* message);
-	void alterMsg();
+
 	void HookGameStart();
-	void UnhookGameStart();
-	void drawMessageLog();
+	void HookChat();
+	void ReleaseHooks();
+
+	void RenderSettings() override;
+
+	void GoogleTranslate(ChatMessage1* message);
+	void AlterMsg();
 
 	void SaveSettings();
 	void LoadSettings();

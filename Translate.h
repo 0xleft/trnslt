@@ -64,7 +64,7 @@ bool stringReplace(std::string& str, const std::string& from, const std::string&
     return true;
 }
 
-void trnslt::googleTranslate(ChatMessage1* message) {
+void trnslt::GoogleTranslate(ChatMessage1* message) {
     CurlRequest req;
     req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", Settings::TranslateToLanguage, urlEncode(wToString(message->Message)));
     std::string playerName = wToString(message->PlayerName);
@@ -91,9 +91,9 @@ void trnslt::googleTranslate(ChatMessage1* message) {
 
                 gameWrapper->Execute([this, orig, src, chat, trans, playerName, teamNum](GameWrapper* gw) {
                     if (toLower(std::string(trans.begin(), trans.end())) == toLower(orig) && !Settings::RemoveMessage) { return; }
-                    this->logMessages.push_back({ orig, std::string(trans.begin(), trans.end()), chat, playerName });
+                    this->LogMessages.push_back({ orig, std::string(trans.begin(), trans.end()), chat, playerName });
 
-                    this->toFixQueue.push_back({ orig, std::string(trans.begin(), trans.end()), chat, std::format("[{}] {}", src, playerName), teamNum });
+                    this->FixQueue.push_back({ orig, std::string(trans.begin(), trans.end()), chat, std::format("[{}] {}", src, playerName), teamNum });
                     gameWrapper->LogToChatbox(std::string(trans.begin(), trans.end()), std::format("[{}] {}", src, playerName));
                 });
             }

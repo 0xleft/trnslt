@@ -31,9 +31,9 @@ void trnslt::onLoad() {
         }
 
         std::string langCode = params[1];
-        auto it = std::find_if(languageCodes.begin(), languageCodes.end(), [&langCode](const auto& pair) { return pair.second == langCode; });
+        auto it = std::find_if(LanguageCodes.begin(), LanguageCodes.end(), [&langCode](const auto& pair) { return pair.second == langCode; });
 
-        if (it != languageCodes.end()) {
+        if (it != LanguageCodes.end()) {
             Settings::TranslateToLanguage = langCode;
         } else {
             Settings::TranslateToLanguage = "en";
@@ -44,27 +44,21 @@ void trnslt::onLoad() {
 
     this->HookChat();
     this->HookGameStart();
-    this->alterMsg();
+    this->AlterMsg();
 }
 
 void trnslt::HookGameStart() {
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame", [this](std::string eventName) {
-        this->toCancelQueue.clear();
-        this->logMessages.clear();
-        this->toFixQueue.clear();
+        this->CancelQueue.clear();
+        this->LogMessages.clear();
+        this->FixQueue.clear();
     });
-}
-
-void trnslt::UnhookGameStart() {
-	gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame");
 }
 
 void trnslt::onUnload() {
     // Set CVars
     this->SaveSettings();
-
-    this->UnHookChat();
-    this->UnhookGameStart();
+    this->ReleaseHooks();
 }
 
 void trnslt::HookChat() {
@@ -83,7 +77,7 @@ void trnslt::HookChat() {
             if (message->bPreset) return;
 
 			if (Settings::RemoveMessage) {
-				this->toCancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
+				this->CancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
 			}
 
             logTranslation(message);
@@ -92,42 +86,43 @@ void trnslt::HookChat() {
 }
 
 // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L495
-void trnslt::alterMsg () {
+void trnslt::AlterMsg () {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
         FGFxChatMessage* message = (FGFxChatMessage*)params;
         if (!message) return;
 
         if (Settings::RemoveMessage) {
             // check for message queue todo
-            auto it = std::find_if(this->toCancelQueue.begin(), this->toCancelQueue.end(), [message](LogMessage& logMessage) {
-				return logMessage.originalMessage == message->Message.ToString() && logMessage.playerName == message->PlayerName.ToString();
+            auto it = std::find_if(this->CancelQueue.begin(), this->CancelQueue.end(), [message](LogMessage& logMessage) {
+				return logMessage.OriginalMessage == message->Message.ToString() && logMessage.PlayerName == message->PlayerName.ToString();
 			});
 
-            if (it != this->toCancelQueue.end()) {
+            if (it != this->CancelQueue.end()) {
                 message->Message = FS("");
                 message->PlayerName = FS("");
                 message->TimeStamp = FS("");
                 message->ChatChannel = 0;
 
-				this->toCancelQueue.erase(it);
+				this->CancelQueue.erase(it);
                 return;
             }
         }
 
-        auto it = std::find_if(this->toFixQueue.begin(), this->toFixQueue.end(), [message](LogMessage& logMessage) {
-            return logMessage.translatedMessage == message->Message.ToString() && logMessage.playerName == message->PlayerName.ToString();
+        auto it = std::find_if(this->FixQueue.begin(), this->FixQueue.end(), [message](LogMessage& logMessage) {
+            return logMessage.TranslatedMessage == message->Message.ToString() && logMessage.PlayerName == message->PlayerName.ToString();
         });
 
-		if (it != this->toFixQueue.end()) {
-            message->ChatChannel = it->chatChannel;
-            message->Team = it->team;
+		if (it != this->FixQueue.end()) {
+            message->ChatChannel = it->ChatChannel;
+            message->Team = it->Team;
 
-			this->toFixQueue.erase(it);
+			this->FixQueue.erase(it);
 		}
     });
 }
 
-void trnslt::UnHookChat() {
+void trnslt::ReleaseHooks() {
+    gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame");
 	gameWrapper->UnhookEvent("Function TAGame.HUDBase_TA.OnChatMessage");
     gameWrapper->UnhookEvent("Function TAGame.GFxData_Chat_TA.OnChatMessage");
 }
@@ -182,7 +177,7 @@ void trnslt::RenderSettings() {
 
         ImGui::BeginChild("##xxLangChild");
         {
-            for (const auto& lang : languageCodes)
+            for (const auto& lang : LanguageCodes)
             {
                 if (SearchBuffer.empty() || toLower(std::string(lang.first)).find(toLower(SearchBuffer)) != std::string::npos)
                 {
@@ -233,7 +228,13 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        if (ImGui::Button("Reset settings")) {
+        if (ImGui::Button("Clear Message Log")) 
+        {
+            this->LogMessages.clear();
+        }
+
+        if (ImGui::Button("Reset settings")) 
+        {
             Settings::TranslatePublicChat = true;
             Settings::TranslateTeamChat = true;
             Settings::TranslatePartyChat = true;
@@ -246,7 +247,6 @@ void trnslt::RenderSettings() {
 
     ImGui::SameLine();
 
-    //ImGui::SetCursorPosY(21);
     ImGui::BeginChild("Message Log", ImVec2(baseWidth - ImGui::GetCursorPosX(), 89 + baseHeight), true);
     {
         ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() / 2 - (ImGui::CalcTextSize("Chat Message Log").x / 2));
@@ -254,18 +254,10 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        for (auto& msg : this->logMessages) {
-            ImGui::Text(std::format("[{}] {}", msg.playerName, msg.originalMessage).c_str());
+        for (auto& msg : this->LogMessages) {
+            ImGui::Text(std::format("[{}] {}", msg.PlayerName, msg.OriginalMessage).c_str());
         }
     }ImGui::EndChild();
-}
-
-void trnslt::drawMessageLog() {
-    ImGui::Begin("Match log", &Settings::ShowMatchLog, ImGuiWindowFlags_AlwaysAutoResize);
-    for (auto& msg : this->logMessages) {
-		ImGui::Text(std::format("[{}] {}", msg.playerName, msg.originalMessage).c_str());
-	}
-    ImGui::End();
 }
 
 void trnslt::SaveSettings()
@@ -357,7 +349,7 @@ void trnslt::logTranslation(ChatMessage1* message) {
 
     switch (Settings::TranslateApiIndex) {
     case 0:
-        googleTranslate(message);
+        GoogleTranslate(message);
         break;
     default:
         break;
