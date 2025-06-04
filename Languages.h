@@ -187,3 +187,14 @@ std::map<std::string, std::string> languageCodes = {
 	{"Zhuang, Chuang","za"},
 	{"Zulu","zu"},
 };
+
+std::string GetLanguageFromCode(std::string languageCode)
+{
+	for (const auto& [language, code] : languageCodes) {
+		if (code == languageCode) {
+			return std::string(language);
+		}
+	}
+
+	return languageCode;
+}

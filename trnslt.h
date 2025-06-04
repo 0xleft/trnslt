@@ -52,7 +52,6 @@ class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBa
 	void onUnload() override;
 
 public:
-
 	void logTranslation(ChatMessage1* message);
 	void HookChat();
 	void UnHookChat();
@@ -62,4 +61,6 @@ public:
 	void HookGameStart();
 	void UnhookGameStart();
 	void drawMessageLog();
+private:
+	std::string SearchBuffer = "";
 };
