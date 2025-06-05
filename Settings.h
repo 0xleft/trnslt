@@ -11,6 +11,8 @@ namespace Settings
 
 	inline bool RemoveMessage = true;
 
+	inline bool ShowTimeStamp = true;
+
 	inline bool TranslatePublicChat = true;
 	inline bool TranslateTeamChat = true;
 	inline bool TranslatePartyChat = false;

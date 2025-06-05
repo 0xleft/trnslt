@@ -80,7 +80,7 @@ void trnslt::HookChat() {
 				this->CancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
 			}
 
-            logTranslation(message);
+            LogTranslation(message);
         }
     });
 }
@@ -89,7 +89,9 @@ void trnslt::HookChat() {
 void trnslt::AlterMsg () {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
         FGFxChatMessage* message = (FGFxChatMessage*)params;
-        if (!message) return;
+
+        if (!message)
+            return;
 
         if (Settings::RemoveMessage) {
             // check for message queue todo
@@ -208,6 +210,7 @@ void trnslt::RenderSettings() {
 
         ImGui::Checkbox("Transliterate", &Settings::Transliterate);
         ImGui::Checkbox("Remove Messages", &Settings::RemoveMessage);
+        ImGui::Checkbox("Show TimeStamp", &Settings::ShowTimeStamp);
         ImGui::Checkbox("Translate My Messages", &Settings::TranslateLocalPlayer);
 
         ImGui::Separator();
@@ -277,6 +280,7 @@ void trnslt::SaveSettings()
     saveData["Transliterate"] = Settings::Transliterate;
 
     saveData["Chat"]["RemoveMessage"] = Settings::RemoveMessage;
+    saveData["Chat"]["ShowTimeStamp"] = Settings::ShowTimeStamp;
     saveData["Chat"]["PublicChat"] = Settings::TranslatePublicChat;
     saveData["Chat"]["TeamChat"] = Settings::TranslateTeamChat;
     saveData["Chat"]["PartyChat"] = Settings::TranslatePartyChat;
@@ -333,6 +337,8 @@ void trnslt::LoadSettings()
     {
         if (data["Chat"].contains("RemoveMessage"))
             Settings::RemoveMessage = data["Chat"]["RemoveMessage"];
+        if (data["Chat"].contains("ShowTimeStamp"))
+            Settings::ShowTimeStamp = data["Chat"]["ShowTimeStamp"];
         if (data["Chat"].contains("PublicChat"))
             Settings::TranslatePublicChat = data["Chat"]["PublicChat"];
         if (data["Chat"].contains("TeamChat"))
@@ -345,7 +351,7 @@ void trnslt::LoadSettings()
     LOG("Loaded Latest Save.");
 }
 
-void trnslt::logTranslation(ChatMessage1* message) {
+void trnslt::LogTranslation(ChatMessage1* message) {
 
     switch (Settings::TranslateApiIndex) {
     case 0:

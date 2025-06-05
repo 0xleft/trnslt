@@ -64,41 +64,83 @@ bool stringReplace(std::string& str, const std::string& from, const std::string&
     return true;
 }
 
+using namespace nlohmann;
+
 void trnslt::GoogleTranslate(ChatMessage1* message) {
     CurlRequest req;
     req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", Settings::TranslateToLanguage, urlEncode(wToString(message->Message)));
-    std::string playerName = wToString(message->PlayerName);
-    uint8_t chat = message->ChatChannel;
-    uint8_t teamNum = 0;
-    TeamWrapper team = TeamWrapper(reinterpret_cast<uintptr_t>(message->Team));
-    if (!team.IsNull()) {
-		teamNum = team.GetTeamNum();
+
+    std::string PlayerName = wToString(message->PlayerName);
+    
+    uint8_t Chat = message->ChatChannel;
+    uint8_t TeamNum = 0;
+
+    ServerWrapper server = gameWrapper->GetCurrentGameState();
+
+    int GameTime = 0;
+
+    if (server)
+    {
+        GameTime = server.GetSecondsRemaining();
     }
 
-    HttpWrapper::SendCurlRequest(req, [this, chat, playerName, teamNum](int code, std::string result) {
-        try {
-            nlohmann::json data = nlohmann::json::parse(result);
-            nlohmann::json sentences = data["sentences"];
-            for (int i = 0; i < sentences.size(); i++) {
-                nlohmann::json sentence = sentences.at(i);
-				std::wstring trans = utf8ToWstring(sentence["trans"]);
-                std::string orig(sentence["orig"]);
-                std::string src(data["src"]);
+    TeamWrapper team = TeamWrapper(reinterpret_cast<uintptr_t>(message->Team));
 
-				if (Settings::Transliterate) {
-                    trans = this->pack.transliterate(trans, Settings::TranslateToLanguage);
+    if (!team.IsNull()) {
+		TeamNum = team.GetTeamNum();
+    }
+
+    HttpWrapper::SendCurlRequest(req, [this, Chat, PlayerName, TeamNum, GameTime](int code, std::string result) {
+        try {
+            json data = json::parse(result);
+
+            json sentences = data["sentences"];
+
+            LogMessage logMessage;
+
+            int minutes = GameTime / 60;
+            int seconds = GameTime % 60;
+
+            logMessage.TimeStamp = std::format("{}:{:02}", minutes, seconds);
+
+            logMessage.ChatChannel = Chat;
+            logMessage.PlayerName = PlayerName;
+            logMessage.Team = TeamNum;
+
+            for (int i = 0; i < sentences.size(); i++) {
+
+                if (sentences[i]["trans"] != nullptr)
+                    logMessage.TranslatedMessage = sentences[i]["trans"];
+                else if (sentences[i]["orig"] != nullptr)
+                    logMessage.OriginalMessage = sentences[i]["orig"];
+
+                logMessage.LangCode = data["src"];
+
+
+                if (Settings::Transliterate) {
+                    std::wstring trans = this->pack.transliterate(std::wstring(logMessage.TranslatedMessage.begin(), logMessage.TranslatedMessage.end()), Settings::TranslateToLanguage);
+                    logMessage.TranslatedMessage = std::string(trans.begin(), trans.end());
                 }
 
-                gameWrapper->Execute([this, orig, src, chat, trans, playerName, teamNum](GameWrapper* gw) {
-                    if (toLower(std::string(trans.begin(), trans.end())) == toLower(orig) && !Settings::RemoveMessage) { return; }
-                    this->LogMessages.push_back({ orig, std::string(trans.begin(), trans.end()), chat, playerName });
+                gameWrapper->Execute([this, logMessage](GameWrapper* gw) {
+                    if (logMessage.MatchingMessages() && !Settings::RemoveMessage)
+                        return;
 
-                    this->FixQueue.push_back({ orig, std::string(trans.begin(), trans.end()), chat, std::format("[{}] {}", src, playerName), teamNum });
-                    gameWrapper->LogToChatbox(std::string(trans.begin(), trans.end()), std::format("[{}] {}", src, playerName));
+                    this->LogMessages.push_back(logMessage);
+
+                    LogMessage message = logMessage;
+
+                    if (Settings::ShowTimeStamp)
+                        message.PlayerName = std::format("[{}] [{}] {}", logMessage.TimeStamp, logMessage.LangCode, logMessage.PlayerName);
+                    else
+                        message.PlayerName = std::format("[{}] {}", logMessage.LangCode, logMessage.PlayerName);
+
+                    this->FixQueue.push_back(message);
+                    gameWrapper->LogToChatbox(message.TranslatedMessage, message.PlayerName);
                 });
             }
         }
-        catch (nlohmann::json::exception e) {
+        catch (json::exception e) {
             LOG("{}", e.what());
         }
     });

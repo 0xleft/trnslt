@@ -11,6 +11,8 @@
 #include "version.h"
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
 
+extern std::string toLower(std::string str);
+
 struct ChatMessage1
 {
 	void* PRI;
@@ -39,6 +41,12 @@ struct LogMessage {
 	uint8_t ChatChannel;
 	std::string PlayerName;
 	uint8_t Team = 0;
+	std::string TimeStamp = "0:00";
+	std::string LangCode;
+
+	bool MatchingMessages() const {
+		return toLower(TranslatedMessage) == toLower(OriginalMessage);
+	}
 };
 
 class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBase
@@ -52,7 +60,7 @@ class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBa
 	void onUnload() override;
 
 public:
-	void logTranslation(ChatMessage1* message);
+	void LogTranslation(ChatMessage1* message);
 
 	void HookGameStart();
 	void HookChat();
