@@ -139,6 +139,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="GuiBase.h" />
     <ClInclude Include="russian.hpp" />
+    <ClInclude Include="Settings.h" />
     <ClInclude Include="Translate.h" />
     <ClInclude Include="trnslt.h" />
     <ClInclude Include="utils.h" />

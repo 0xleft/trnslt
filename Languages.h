@@ -2,7 +2,7 @@
 
 // https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
 // generated using languages.py
-std::map<std::string, std::string> languageCodes = {
+std::map<std::string, std::string> LanguageCodes = {
 	{"Abkhazian","ab"},
 	{"Afar","aa"},
 	{"Afrikaans","af"},
@@ -187,3 +187,14 @@ std::map<std::string, std::string> languageCodes = {
 	{"Zhuang, Chuang","za"},
 	{"Zulu","zu"},
 };
+
+std::string GetLanguageFromCode(std::string languageCode)
+{
+	for (const auto& [language, code] : LanguageCodes) {
+		if (code == languageCode) {
+			return std::string(language);
+		}
+	}
+
+	return languageCode;
+}
