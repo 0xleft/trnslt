@@ -10,6 +10,10 @@ If you encounter any issues please report them here: [issues](https://github.com
 
 ## Changes
 
+1.0.6
+
+- Fresh UI for better navigation
+
 1.0.5
 
 - Fix team color for translated chat
