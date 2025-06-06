@@ -5,7 +5,6 @@
 #include <sstream>
 #include <iterator>
 #include "Languages.h"
-#include "Settings.h"
 #include <regex>
 #include "Translate.h"
 #include <iostream>
@@ -22,7 +21,7 @@ std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 void trnslt::onLoad() {
     _globalCvarManager = cvarManager;
 
-    this->LoadSettings();
+    this->RegisterCvars();
 
     cvarManager->registerNotifier("trnslt_set_language_to", [this](std::vector<std::string> params) {
         if (params.size() < 2) {
@@ -34,9 +33,9 @@ void trnslt::onLoad() {
         auto it = std::find_if(LanguageCodes.begin(), LanguageCodes.end(), [&langCode](const auto& pair) { return pair.second == langCode; });
 
         if (it != LanguageCodes.end()) {
-            Settings::TranslateToLanguage = langCode;
+            cvarManager->getCvar("trnslt_language_to").setValue(langCode);
         } else {
-            Settings::TranslateToLanguage = "en";
+            cvarManager->getCvar("trnslt_language_to").setValue("en");
             LOG("Language code: \"{}\" not found", langCode);
         }
 
@@ -56,8 +55,6 @@ void trnslt::HookGameStart() {
 }
 
 void trnslt::onUnload() {
-    // Set CVars
-    this->SaveSettings();
     this->ReleaseHooks();
 }
 
@@ -67,16 +64,16 @@ void trnslt::HookChat() {
         if (params) {
             ChatMessage1* message = (ChatMessage1*)params;
             if (message->PlayerName == nullptr) return;
-            if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !Settings::TranslateLocalPlayer) { return; }
+            if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
 
-            if (message->ChatChannel == 0 && !Settings::TranslatePublicChat) { return; }
-            if (message->ChatChannel == 1 && !Settings::TranslateTeamChat) { return; }
-            if (message->ChatChannel == 2 && !Settings::TranslatePartyChat) { return; }
+            if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
+            if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
+            if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
 
             if (message->Message == nullptr) return;
             if (message->bPreset) return;
 
-			if (Settings::RemoveMessage) {
+			if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
 				this->CancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
 			}
 
@@ -93,7 +90,7 @@ void trnslt::AlterMsg () {
         if (!message)
             return;
 
-        if (Settings::RemoveMessage) {
+        if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
             // check for message queue todo
             auto it = std::find_if(this->CancelQueue.begin(), this->CancelQueue.end(), [message](LogMessage& logMessage) {
 				return logMessage.OriginalMessage == message->Message.ToString() && logMessage.PlayerName == message->PlayerName.ToString();
@@ -130,6 +127,9 @@ void trnslt::ReleaseHooks() {
 }
 
 void trnslt::RenderSettings() {
+
+    bool trnslt_transliterate = cvarManager->getCvar("trnslt_should_transliterate").getBoolValue();
+
     ImGui::BeginChild("Info", ImVec2(250, 85), true);
     {
         ImGui::SetCursorPosX((250 / 2) - ImGui::CalcTextSize("Info").x / 2);
@@ -137,10 +137,10 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        ImGui::Text("Language: %s", GetLanguageFromCode(Settings::TranslateToLanguage));
-        ImGui::Text("Translation API: %s", translateApis[Settings::TranslateApiIndex].c_str());
+        ImGui::Text("Language: %s", GetLanguageFromCode(cvarManager->getCvar("trnslt_language_to").getStringValue()));
+        ImGui::Text("Translation API: %s", translateApis[cvarManager->getCvar("trnslt_translate_api").getIntValue()].c_str());
 
-        ImGui::Text("Transliterate: %s", Settings::Transliterate ? "Enabled" : "Disabled");
+        ImGui::Text("Transliterate: %s", trnslt_transliterate ? "Enabled" : "Disabled");
     }
     ImGui::EndChild();
 
@@ -154,16 +154,15 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        if (ImGui::BeginCombo("API", translateApis[Settings::TranslateApiIndex].c_str()))
+        if (ImGui::BeginCombo("API", translateApis[cvarManager->getCvar("trnslt_translate_api").getIntValue()].c_str()))
         {
             for (int i = 0; i < translateApis.size(); i++)
             {
-                bool isSelected = (Settings::TranslateApiIndex == i);
+                bool isSelected = (cvarManager->getCvar("trnslt_translate_api").getIntValue() == i);
 
                 if (ImGui::Selectable(translateApis[i].c_str(), isSelected))
                 {
-                    Settings::TranslateApiIndex = i;
-                    this->SearchBuffer = "";
+                    cvarManager->getCvar("trnslt_translate_api").setValue(i);
                 }
 
                 if (isSelected)
@@ -179,15 +178,15 @@ void trnslt::RenderSettings() {
 
         ImGui::BeginChild("##xxLangChild");
         {
-            for (const auto& lang : LanguageCodes)
+            for (const auto& [name, code] : LanguageCodes)
             {
-                if (SearchBuffer.empty() || toLower(std::string(lang.first)).find(toLower(SearchBuffer)) != std::string::npos)
+                if (SearchBuffer.empty() || toLower(std::string(name)).find(toLower(SearchBuffer)) != std::string::npos)
                 {
-                    bool isSelected = (Settings::TranslateToLanguage == lang.second);
+                    bool isSelected = (cvarManager->getCvar("trnslt_language_to").getStringValue() == code);
 
-                    if (ImGui::Selectable(std::string(lang.first).c_str(), isSelected))
+                    if (ImGui::Selectable(std::string(name).c_str(), isSelected))
                     {
-                        Settings::TranslateToLanguage = lang.second;
+                        cvarManager->getCvar("trnslt_language_to").setValue(code);
                         this->SearchBuffer = "";
                     }
 
@@ -208,10 +207,14 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        ImGui::Checkbox("Transliterate", &Settings::Transliterate);
-        ImGui::Checkbox("Remove Messages", &Settings::RemoveMessage);
-        ImGui::Checkbox("Show TimeStamp", &Settings::ShowTimeStamp);
-        ImGui::Checkbox("Translate My Messages", &Settings::TranslateLocalPlayer);
+        bool trnslt_remove_msg = cvarManager->getCvar("trnslt_remove_message").getBoolValue();
+        bool trnslt_show_timestamp = cvarManager->getCvar("trnslt_display_timestamp").getBoolValue();
+        bool trnslt_local_msgs = cvarManager->getCvar("trnslt_translate_own").getBoolValue();
+
+        if (ImGui::Checkbox("Transliterate", &trnslt_transliterate)) cvarManager->getCvar("trnslt_should_transliterate").setValue(trnslt_transliterate);
+        if (ImGui::Checkbox("Remove Messages", &trnslt_remove_msg)) cvarManager->getCvar("trnslt_remove_message").setValue(trnslt_remove_msg);
+        if (ImGui::Checkbox("Show TimeStamp", &trnslt_show_timestamp)) cvarManager->getCvar("trnslt_display_timestamp").setValue(trnslt_show_timestamp);
+        if (ImGui::Checkbox("Translate My Messages", &trnslt_local_msgs)) cvarManager->getCvar("trnslt_translate_own").setValue(trnslt_local_msgs);
 
         ImGui::Separator();
 
@@ -220,9 +223,13 @@ void trnslt::RenderSettings() {
 
         ImGui::Separator();
 
-        ImGui::Checkbox("Public", &Settings::TranslatePublicChat);
-        ImGui::Checkbox("Team", &Settings::TranslateTeamChat);
-        ImGui::Checkbox("Party", &Settings::TranslatePartyChat);
+        bool trnslt_public = cvarManager->getCvar("trnslt_translate_0").getBoolValue();
+        bool trnslt_team = cvarManager->getCvar("trnslt_translate_1").getBoolValue();
+        bool trnslt_party = cvarManager->getCvar("trnslt_translate_2").getBoolValue();
+
+        if (ImGui::Checkbox("Public", &trnslt_public)) cvarManager->getCvar("trnslt_translate_0").setValue(trnslt_public);
+        if (ImGui::Checkbox("Team", &trnslt_team)) cvarManager->getCvar("trnslt_translate_1").setValue(trnslt_team);
+        if (ImGui::Checkbox("Party", &trnslt_party)) cvarManager->getCvar("trnslt_translate_2").setValue(trnslt_party);
 
         ImGui::Separator();
 
@@ -238,13 +245,15 @@ void trnslt::RenderSettings() {
 
         if (ImGui::Button("Reset settings")) 
         {
-            Settings::TranslatePublicChat = true;
-            Settings::TranslateTeamChat = true;
-            Settings::TranslatePartyChat = true;
-            Settings::TranslateApiIndex = 0;
-            Settings::TranslateToLanguage = "en";
-            Settings::RemoveMessage = true;
-            Settings::TranslateLocalPlayer = false;
+            cvarManager->getCvar("trnslt_translate_api").setValue(0);
+            cvarManager->getCvar("trnslt_language_to").setValue("en");
+            cvarManager->getCvar("trnslt_translate_0").setValue(true);
+            cvarManager->getCvar("trnslt_translate_1").setValue(true);
+            cvarManager->getCvar("trnslt_translate_2").setValue(true);
+            cvarManager->getCvar("trnslt_remove_message").setValue(true);
+            cvarManager->getCvar("trnslt_display_timestamp").setValue(true);
+            cvarManager->getCvar("trnslt_should_transliterate").setValue(false);
+            cvarManager->getCvar("trnslt_translate_own").setValue(false);
         }
     }ImGui::EndChild();
 
@@ -263,97 +272,27 @@ void trnslt::RenderSettings() {
     }ImGui::EndChild();
 }
 
-void trnslt::SaveSettings()
+void trnslt::RegisterCvars()
 {
-    std::filesystem::path latestSavePath = gameWrapper->GetDataFolder() / "Translate" / "LatestSave.json";
+    cvarManager->registerCvar("trnslt_should_transliterate", "0");
 
-    if (!std::filesystem::exists(latestSavePath.parent_path()))
-    {
-        std::filesystem::create_directories(latestSavePath.parent_path());
-    }
+    cvarManager->registerCvar("trnslt_should_show_match_log", "0");
 
-    json saveData;
+    cvarManager->registerCvar("trnslt_remove_message", "1");
+    cvarManager->registerCvar("trnslt_translate_own", "0");
+    cvarManager->registerCvar("trnslt_display_timestamp", "1");
 
-    saveData["LanguageCode"] = Settings::TranslateToLanguage;
-    saveData["TranlateApiIndex"] = Settings::TranslateApiIndex;
-    saveData["TranslateLocalPlayer"] = Settings::TranslateLocalPlayer;
-    saveData["Transliterate"] = Settings::Transliterate;
+    cvarManager->registerCvar("trnslt_translate_0", "1");
+    cvarManager->registerCvar("trnslt_translate_1", "1");
+    cvarManager->registerCvar("trnslt_translate_2", "1");
 
-    saveData["Chat"]["RemoveMessage"] = Settings::RemoveMessage;
-    saveData["Chat"]["ShowTimeStamp"] = Settings::ShowTimeStamp;
-    saveData["Chat"]["PublicChat"] = Settings::TranslatePublicChat;
-    saveData["Chat"]["TeamChat"] = Settings::TranslateTeamChat;
-    saveData["Chat"]["PartyChat"] = Settings::TranslatePartyChat;
+    cvarManager->registerCvar("trnslt_translate_api", "0", "transltae api index", false, true, 0, true, translateApis.size() - 1, true);
 
-    std::ofstream outFile(latestSavePath);
-
-    if (outFile.is_open())
-    {
-        outFile << saveData.dump(4);
-        outFile.close();
-        LOG("Saved Settings!");
-    }
-    else
-    {
-        LOG("Failed to open file for saving: {}", latestSavePath.string());
-    }
-}
-
-void trnslt::LoadSettings()
-{
-    std::filesystem::path latestSavePath = gameWrapper->GetDataFolder() / "Translate" / "LatestSave.json";
-
-    json saveData;
-
-    if (!std::filesystem::exists(latestSavePath))
-    {
-        LOG("No latest save file found, using default settings.");
-        return;
-    }
-
-    std::ifstream inFile(latestSavePath);
-
-    json data = json::parse(inFile, nullptr, true);
-
-    if (data.is_null())
-    {
-        LOG("Failed to parse latest save file.");
-        return;
-    }
-
-    if (data.contains("LanguageCode"))
-        Settings::TranslateToLanguage = data["LanguageCode"];
-
-    if (data.contains("TranlateApiIndex"))
-        Settings::TranslateApiIndex = data["TranlateApiIndex"];
-
-    if (data.contains("TranslateLocalPlayer"))
-        Settings::TranslateLocalPlayer = data["TranslateLocalPlayer"];
-
-    if (data.contains("Transliterate"))
-        Settings::Transliterate = data["Transliterate"];
-
-    if (data.contains("Chat"))
-    {
-        if (data["Chat"].contains("RemoveMessage"))
-            Settings::RemoveMessage = data["Chat"]["RemoveMessage"];
-        if (data["Chat"].contains("ShowTimeStamp"))
-            Settings::ShowTimeStamp = data["Chat"]["ShowTimeStamp"];
-        if (data["Chat"].contains("PublicChat"))
-            Settings::TranslatePublicChat = data["Chat"]["PublicChat"];
-        if (data["Chat"].contains("TeamChat"))
-            Settings::TranslateTeamChat = data["Chat"]["TeamChat"];
-        if (data["Chat"].contains("PartyChat"))
-            Settings::TranslatePartyChat = data["Chat"]["PartyChat"];
-    }
-
-    inFile.close();
-    LOG("Loaded Latest Save.");
+    cvarManager->registerCvar("trnslt_language_to", "en", "language to translate to", true, false, 0, false, 0, true);
 }
 
 void trnslt::LogTranslation(ChatMessage1* message) {
-
-    switch (Settings::TranslateApiIndex) {
+    switch (cvarManager->getCvar("trnslt_translate_api").getIntValue()) {
     case 0:
         GoogleTranslate(message);
         break;

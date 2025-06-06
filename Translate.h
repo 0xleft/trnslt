@@ -68,7 +68,7 @@ using namespace nlohmann;
 
 void trnslt::GoogleTranslate(ChatMessage1* message) {
     CurlRequest req;
-    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", Settings::TranslateToLanguage, urlEncode(wToString(message->Message)));
+    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(wToString(message->Message)));
 
     std::string PlayerName = wToString(message->PlayerName);
     
@@ -116,21 +116,20 @@ void trnslt::GoogleTranslate(ChatMessage1* message) {
 
                 logMessage.LangCode = data["src"];
 
-
-                if (Settings::Transliterate) {
-                    std::wstring trans = this->pack.transliterate(std::wstring(logMessage.TranslatedMessage.begin(), logMessage.TranslatedMessage.end()), Settings::TranslateToLanguage);
+                if (cvarManager->getCvar("trnslt_should_transliterate").getBoolValue()) {
+                    std::wstring trans = this->pack.transliterate(std::wstring(logMessage.TranslatedMessage.begin(), logMessage.TranslatedMessage.end()), cvarManager->getCvar("trnslt_language_to").getStringValue());
                     logMessage.TranslatedMessage = std::string(trans.begin(), trans.end());
                 }
 
                 gameWrapper->Execute([this, logMessage](GameWrapper* gw) {
-                    if (logMessage.MatchingMessages() && !Settings::RemoveMessage)
+                    if (logMessage.MatchingMessages() && !cvarManager->getCvar("trnslt_remove_message").getBoolValue())
                         return;
 
                     this->LogMessages.push_back(logMessage);
 
                     LogMessage message = logMessage;
 
-                    if (Settings::ShowTimeStamp)
+                    if (cvarManager->getCvar("trnslt_display_timestamp").getBoolValue())
                         message.PlayerName = std::format("[{}] [{}] {}", logMessage.TimeStamp, logMessage.LangCode, logMessage.PlayerName);
                     else
                         message.PlayerName = std::format("[{}] {}", logMessage.LangCode, logMessage.PlayerName);

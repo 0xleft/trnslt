@@ -62,7 +62,6 @@ void LOG(std::wstring_view format_str, Args&&... args)
 	_globalCvarManager->log(std::vformat(format_str, std::make_wformat_args(std::forward<Args>(args)...)));
 }
 
-
 template <typename... Args>
 void DEBUGLOG(const FormatString& format_str, Args&&... args)
 {

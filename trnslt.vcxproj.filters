@@ -161,9 +161,6 @@
     <ClInclude Include="pack.hpp">
       <Filter>Plugin\transliteration</Filter>
     </ClInclude>
-    <ClInclude Include="Settings.h">
-      <Filter>Plugin\header</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="trnslt.rc">

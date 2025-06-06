@@ -71,8 +71,7 @@ public:
 	void GoogleTranslate(ChatMessage1* message);
 	void AlterMsg();
 
-	void SaveSettings();
-	void LoadSettings();
+	void RegisterCvars();
 private:
 	std::string SearchBuffer = "";
 };
