@@ -1,3 +1,7 @@
+# CURRENTLY BROKEN
+
+See: https://github.com/0xleft/trnslt/issues/10#issuecomment-3706267235
+
 # Translate plugin for Rocket League
 
 ## Install
