@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <Windows.h>
 
 // hippity hoppity i copyti this from https://github.com/JulienML/BetterChat/commit/dedb44e8e543eb4b40e404257b4ef123404617f1?diff=split#diff-c2a4ceabc49cd85b048435a7850490d7fab95a64ffc33a813b02b6eebf8b14b4
 // gracie mille
@@ -56,11 +57,13 @@ public:
         if (!IsValid())
         {
             std::wstring wideStr(ArrayData);
-            std::string str(wideStr.begin(), wideStr.end());
+			int size_needed = WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), nullptr, 0, nullptr, nullptr);
+			std::string str(size_needed, 0);
+			WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), &str[0], size_needed, nullptr, nullptr);
             return str;
         }
 
-        return std::string();
+		return std::string("null");
     }
 
     bool IsValid() const
