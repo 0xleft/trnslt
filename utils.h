@@ -10,95 +10,86 @@
 struct FString
 {
 public:
-    using ElementType = const wchar_t;
-    using ElementPointer = ElementType*;
+	using ElementType = const wchar_t;
+	using ElementPointer = ElementType*;
 
 private:
-    ElementPointer ArrayData;
-    int32_t ArrayCount;
-    int32_t ArrayMax;
+	ElementPointer ArrayData;
+	int32_t ArrayCount;
+	int32_t ArrayMax;
 
 public:
-    FString()
-    {
-        ArrayData = nullptr;
-        ArrayCount = 0;
-        ArrayMax = 0;
-    }
+	FString()
+	{
+		ArrayData = nullptr;
+		ArrayCount = 0;
+		ArrayMax = 0;
+	}
 
-    FString(ElementPointer other)
-    {
-        ArrayData = nullptr;
-        ArrayCount = 0;
-        ArrayMax = 0;
+	FString(ElementPointer other)
+	{
+		ArrayData = nullptr;
+		ArrayCount = 0;
+		ArrayMax = 0;
 
-        ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
+		ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
 
-        if (ArrayCount > 0)
-        {
-            ArrayData = other;
-        }
-    }
+		if (ArrayCount > 0)
+		{
+			ArrayData = other;
+		}
+	}
 
-    ~FString() {}
+	~FString() {}
 
 public:
-	std::wstring ToWideString() const
+	std::string ToString() const
 	{
 		if (!IsValid())
 		{
-			return std::wstring(ArrayData);
-		}
-		return std::wstring();
-	}
-
-    std::string ToString() const
-    {
-        if (!IsValid())
-        {
-            std::wstring wideStr(ArrayData);
+			std::wstring wideStr(ArrayData);
 			int size_needed = WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), nullptr, 0, nullptr, nullptr);
 			std::string str(size_needed, 0);
 			WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), &str[0], size_needed, nullptr, nullptr);
-            return str;
-        }
+			return str;
+		}
 
 		return std::string("null");
-    }
+	}
 
-    bool IsValid() const
-    {
-        return !ArrayData;
-    }
+	bool IsValid() const
+	{
+		return !ArrayData;
+	}
 
-    FString operator=(ElementPointer other)
-    {
-        if (ArrayData != other)
-        {
-            ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
+	FString operator=(ElementPointer other)
+	{
+		if (ArrayData != other)
+		{
+			ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
 
-            if (ArrayCount > 0)
-            {
-                ArrayData = other;
-            }
-        }
+			if (ArrayCount > 0)
+			{
+				ArrayData = other;
+			}
+		}
 
-        return *this;
-    }
+		return *this;
+	}
 
-    bool operator==(const FString& other)
-    {
-        return (!wcscmp(ArrayData, other.ArrayData));
-    }
+	bool operator==(const FString& other)
+	{
+		return (!wcscmp(ArrayData, other.ArrayData));
+	}
 };
 
 FString FS(const std::string& s) {
-    wchar_t* p = new wchar_t[s.size() + 1];
-    for (std::string::size_type i = 0; i < s.size(); ++i)
-        p[i] = s[i];
+	wchar_t* p = new wchar_t[s.size() + 1];
+	for (std::string::size_type i = 0; i < s.size(); ++i)
+		p[i] = s[i];
 
-    p[s.size()] = '\0';
-    return FString(p);
+	p[s.size()] = '\0';
+	return FString(p);
 }
 
 struct FSceNpOnlineId
