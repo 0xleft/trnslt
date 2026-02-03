@@ -123,11 +123,11 @@ struct FUniqueNetId
 };
 struct FGFxChatMessage {
     int32_t Team;
-    class FString PlayerName;
-    class FString Message;
+	struct FString PlayerName;
+	struct FString Message;
     uint8_t ChatChannel;
     bool bLocalPlayer : 1;
     struct FUniqueNetId SenderID;
     uint8_t MessageType;
-    class FString TimeStamp;
+	struct FString TimeStamp;
 };
