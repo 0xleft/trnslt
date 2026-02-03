@@ -60,15 +60,14 @@ class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBa
 	void onUnload() override;
 
 public:
-	void LogTranslation(ChatMessage1* message);
+	void LogTranslation(FGFxChatMessage* message);
 
 	void HookGameStart();
-	void HookChat();
 	void ReleaseHooks();
 
 	void RenderSettings() override;
 
-	void GoogleTranslate(ChatMessage1* message);
+	void GoogleTranslate(FGFxChatMessage* message);
 	void AlterMsg();
 
 	void RegisterCvars();
