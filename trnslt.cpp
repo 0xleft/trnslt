@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 #include <fstream>
+#include <atomic>
 
 using namespace nlohmann;
 
@@ -62,6 +63,15 @@ void trnslt::AlterMsg () {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
         FGFxChatMessage* message = (FGFxChatMessage*)params;
 
+        static std::atomic<bool> ignoreNextMessage = false;
+
+        // Avoid reprocessing our own messages
+        if (ignoreNextMessage)
+        {
+            ignoreNextMessage = false;
+            return;
+        }
+
         if (!message)
             return;
 
@@ -84,6 +94,7 @@ void trnslt::AlterMsg () {
             this->CancelQueue.push_back({ message->Message.ToString(), "", message->ChatChannel, message->PlayerName.ToString() });
         }
 
+        ignoreNextMessage = true;
         LogTranslation(message);
         LOG("Translated message from user: {}", message->PlayerName.ToString());
 
