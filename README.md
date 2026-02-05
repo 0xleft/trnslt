@@ -2,7 +2,9 @@
 
 ## Install
 
-[Through bakkes plugins](https://bakkesplugins.com/plugins/view/413)
+[Through bakkes plugins](https://bakkesplugins.com/plugin/413)
+
+
 
 ## Settings
 
