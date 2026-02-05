@@ -54,6 +54,7 @@ struct FormatWstring
 template <typename... Args>
 void LOG(std::string_view format_str, Args&&... args)
 {
+	_globalCvarManager->log(std::vformat(format_str, std::make_format_args(args...)));
 }
 
 template <typename... Args>

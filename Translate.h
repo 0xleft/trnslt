@@ -66,11 +66,11 @@ bool stringReplace(std::string& str, const std::string& from, const std::string&
 
 using namespace nlohmann;
 
-void trnslt::GoogleTranslate(ChatMessage1* message) {
+void trnslt::GoogleTranslate(FGFxChatMessage* message) {
     CurlRequest req;
-    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(wToString(message->Message)));
+    req.url = std::format("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={}&dt=t&dt=bd&dj=1&q={}", cvarManager->getCvar("trnslt_language_to").getStringValue(), urlEncode(message->Message.ToString()));
 
-    std::string PlayerName = wToString(message->PlayerName);
+    std::string PlayerName = message->PlayerName.ToString();
     
     uint8_t Chat = message->ChatChannel;
     uint8_t TeamNum = 0;
@@ -83,12 +83,8 @@ void trnslt::GoogleTranslate(ChatMessage1* message) {
     {
         GameTime = server.GetSecondsRemaining();
     }
-
-    TeamWrapper team = TeamWrapper(reinterpret_cast<uintptr_t>(message->Team));
-
-    if (!team.IsNull()) {
-		TeamNum = team.GetTeamNum();
-    }
+    
+    TeamNum = message->Team;
 
     HttpWrapper::SendCurlRequest(req, [this, Chat, PlayerName, TeamNum, GameTime](int code, std::string result) {
         try {

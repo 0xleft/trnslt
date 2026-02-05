@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 #include <fstream>
+#include <atomic>
 
 using namespace nlohmann;
 
@@ -41,7 +42,6 @@ void trnslt::onLoad() {
 
     }, "set transltate to language", PERMISSION_ALL);
 
-    this->HookChat();
     this->HookGameStart();
     this->AlterMsg();
 }
@@ -58,37 +58,45 @@ void trnslt::onUnload() {
     this->ReleaseHooks();
 }
 
-void trnslt::HookChat() {
-    // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L509
-    gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
-        if (params) {
-            ChatMessage1* message = (ChatMessage1*)params;
-            if (message->PlayerName == nullptr) return;
-            if (message->PlayerName == gameWrapper->GetPlayerName().ToWideString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
-
-            if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
-            if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
-            if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
-
-            if (message->Message == nullptr) return;
-            if (message->bPreset) return;
-
-			if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
-				this->CancelQueue.push_back({ wToString(message->Message), "", message->ChatChannel, wToString(message->PlayerName) });
-			}
-
-            LogTranslation(message);
-        }
-    });
-}
-
 // https://github.com/JulienML/BetterChat/blob/fd0650ae30c12c11c70302045cfd9d4b6e181759/BetterChat.cpp#L495
 void trnslt::AlterMsg () {
     gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.GFxData_Chat_TA.OnChatMessage", [this](ActorWrapper Caller, void* params, ...) {
         FGFxChatMessage* message = (FGFxChatMessage*)params;
 
+        static std::atomic<bool> ignoreNextMessage = false;
+
+        // Avoid reprocessing our own messages
+        if (ignoreNextMessage)
+        {
+            ignoreNextMessage = false;
+            return;
+        }
+
         if (!message)
             return;
+
+        // Ignore system messages
+        if (message->Team == -1) { return; }
+
+        // Ignore non-regular messages, such as from plugins (including ours)
+        if (message->MessageType != 0) { return; }
+        
+        // Ignore bakkesmod messages
+        //if (message->PlayerName.ToString() == "BAKKESMOD") { return; }
+
+        if (message->PlayerName.ToString() == gameWrapper->GetPlayerName().ToString() && !cvarManager->getCvar("trnslt_translate_own").getBoolValue()) { return; }
+
+        if (message->ChatChannel == 0 && !cvarManager->getCvar("trnslt_translate_0").getBoolValue()) { return; }
+        if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
+        if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
+
+        if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
+            this->CancelQueue.push_back({ message->Message.ToString(), "", message->ChatChannel, message->PlayerName.ToString() });
+        }
+
+        ignoreNextMessage = true;
+        LogTranslation(message);
+        LOG("Translated message from user: {}", message->PlayerName.ToString());
 
         if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
             // check for message queue todo
@@ -291,7 +299,7 @@ void trnslt::RegisterCvars()
     cvarManager->registerCvar("trnslt_language_to", "en", "language to translate to", true, false, 0, false, 0, true);
 }
 
-void trnslt::LogTranslation(ChatMessage1* message) {
+void trnslt::LogTranslation(FGFxChatMessage* message) {
     switch (cvarManager->getCvar("trnslt_translate_api").getIntValue()) {
     case 0:
         GoogleTranslate(message);

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <Windows.h>
 
 // hippity hoppity i copyti this from https://github.com/JulienML/BetterChat/commit/dedb44e8e543eb4b40e404257b4ef123404617f1?diff=split#diff-c2a4ceabc49cd85b048435a7850490d7fab95a64ffc33a813b02b6eebf8b14b4
 // gracie mille
@@ -9,93 +10,86 @@
 struct FString
 {
 public:
-    using ElementType = const wchar_t;
-    using ElementPointer = ElementType*;
+	using ElementType = const wchar_t;
+	using ElementPointer = ElementType*;
 
 private:
-    ElementPointer ArrayData;
-    int32_t ArrayCount;
-    int32_t ArrayMax;
+	ElementPointer ArrayData;
+	int32_t ArrayCount;
+	int32_t ArrayMax;
 
 public:
-    FString()
-    {
-        ArrayData = nullptr;
-        ArrayCount = 0;
-        ArrayMax = 0;
-    }
+	FString()
+	{
+		ArrayData = nullptr;
+		ArrayCount = 0;
+		ArrayMax = 0;
+	}
 
-    FString(ElementPointer other)
-    {
-        ArrayData = nullptr;
-        ArrayCount = 0;
-        ArrayMax = 0;
+	FString(ElementPointer other)
+	{
+		ArrayData = nullptr;
+		ArrayCount = 0;
+		ArrayMax = 0;
 
-        ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
+		ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
 
-        if (ArrayCount > 0)
-        {
-            ArrayData = other;
-        }
-    }
+		if (ArrayCount > 0)
+		{
+			ArrayData = other;
+		}
+	}
 
-    ~FString() {}
+	~FString() {}
 
 public:
-	std::wstring ToWideString() const
+	std::string ToString() const
 	{
 		if (!IsValid())
 		{
-			return std::wstring(ArrayData);
+			std::wstring wideStr(ArrayData);
+			int size_needed = WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), nullptr, 0, nullptr, nullptr);
+			std::string str(size_needed, 0);
+			WideCharToMultiByte(CP_UTF8, 0, wideStr.c_str(), (int)wideStr.length(), &str[0], size_needed, nullptr, nullptr);
+			return str;
 		}
-		return std::wstring();
+
+		return std::string("null");
 	}
 
-    std::string ToString() const
-    {
-        if (!IsValid())
-        {
-            std::wstring wideStr(ArrayData);
-            std::string str(wideStr.begin(), wideStr.end());
-            return str;
-        }
+	bool IsValid() const
+	{
+		return !ArrayData;
+	}
 
-        return std::string();
-    }
+	FString operator=(ElementPointer other)
+	{
+		if (ArrayData != other)
+		{
+			ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
 
-    bool IsValid() const
-    {
-        return !ArrayData;
-    }
+			if (ArrayCount > 0)
+			{
+				ArrayData = other;
+			}
+		}
 
-    FString operator=(ElementPointer other)
-    {
-        if (ArrayData != other)
-        {
-            ArrayMax = ArrayCount = *other ? (wcslen(other) + 1) : 0;
+		return *this;
+	}
 
-            if (ArrayCount > 0)
-            {
-                ArrayData = other;
-            }
-        }
-
-        return *this;
-    }
-
-    bool operator==(const FString& other)
-    {
-        return (!wcscmp(ArrayData, other.ArrayData));
-    }
+	bool operator==(const FString& other)
+	{
+		return (!wcscmp(ArrayData, other.ArrayData));
+	}
 };
 
 FString FS(const std::string& s) {
-    wchar_t* p = new wchar_t[s.size() + 1];
-    for (std::string::size_type i = 0; i < s.size(); ++i)
-        p[i] = s[i];
+	wchar_t* p = new wchar_t[s.size() + 1];
+	for (std::string::size_type i = 0; i < s.size(); ++i)
+		p[i] = s[i];
 
-    p[s.size()] = '\0';
-    return FString(p);
+	p[s.size()] = '\0';
+	return FString(p);
 }
 
 struct FSceNpOnlineId
@@ -120,11 +114,11 @@ struct FUniqueNetId
 };
 struct FGFxChatMessage {
     int32_t Team;
-    class FString PlayerName;
-    class FString Message;
+	struct FString PlayerName;
+	struct FString Message;
     uint8_t ChatChannel;
     bool bLocalPlayer : 1;
     struct FUniqueNetId SenderID;
     uint8_t MessageType;
-    class FString TimeStamp;
+	struct FString TimeStamp;
 };

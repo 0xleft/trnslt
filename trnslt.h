@@ -13,28 +13,6 @@ constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_M
 
 extern std::string toLower(std::string str);
 
-struct ChatMessage1
-{
-	void* PRI;
-	void* Team;
-	wchar_t* PlayerName;
-	uint8_t PlayerNamePadding[0x8];
-	wchar_t* Message;
-	uint8_t MessagePadding[0x8];
-	uint8_t ChatChannel;
-	unsigned long bPreset : 1;
-};
-
-struct ChatMessage2 {
-	int32_t Team;
-	class FString PlayerName;
-	class FString Message;
-	uint8_t ChatChannel;
-	bool bLocalPlayer : 1;
-	unsigned char IDPadding[0x48];
-	uint8_t MessageType;
-};
-
 struct LogMessage {
 	std::string OriginalMessage;
 	std::string TranslatedMessage;
@@ -60,15 +38,14 @@ class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBa
 	void onUnload() override;
 
 public:
-	void LogTranslation(ChatMessage1* message);
+	void LogTranslation(FGFxChatMessage* message);
 
 	void HookGameStart();
-	void HookChat();
 	void ReleaseHooks();
 
 	void RenderSettings() override;
 
-	void GoogleTranslate(ChatMessage1* message);
+	void GoogleTranslate(FGFxChatMessage* message);
 	void AlterMsg();
 
 	void RegisterCvars();
