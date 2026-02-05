@@ -10,6 +10,11 @@ If you encounter any issues please report them here: [issues](https://github.com
 
 ## Changes
 
+1.0.7
+
+- Return to old ui
+- Fix for translation not working! (Thanks to [ahmouse15](https://github.com/ahmouse15))
+
 1.0.6
 
 - Fresh UI for better navigation
