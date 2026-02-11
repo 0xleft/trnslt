@@ -32,8 +32,6 @@ class trnslt: public BakkesMod::Plugin::BakkesModPlugin, public SettingsWindowBa
 	transliteration::TransliterationPack pack;
 
 	std::vector<LogMessage> LogMessages;
-	std::vector<LogMessage> CancelQueue;
-	std::vector<LogMessage> FixQueue;
 	void onLoad() override;
 	void onUnload() override;
 

@@ -48,9 +48,7 @@ void trnslt::onLoad() {
 
 void trnslt::HookGameStart() {
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.InitGame", [this](std::string eventName) {
-        this->CancelQueue.clear();
         this->LogMessages.clear();
-        this->FixQueue.clear();
     });
 }
 
@@ -90,41 +88,19 @@ void trnslt::AlterMsg () {
         if (message->ChatChannel == 1 && !cvarManager->getCvar("trnslt_translate_1").getBoolValue()) { return; }
         if (message->ChatChannel == 2 && !cvarManager->getCvar("trnslt_translate_2").getBoolValue()) { return; }
 
-        if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
-            this->CancelQueue.push_back({ message->Message.ToString(), "", message->ChatChannel, message->PlayerName.ToString() });
-        }
-
         ignoreNextMessage = true;
         LogTranslation(message);
         LOG("Translated message from user: {}", message->PlayerName.ToString());
 
         if (cvarManager->getCvar("trnslt_remove_message").getBoolValue()) {
-            // check for message queue todo
-            auto it = std::find_if(this->CancelQueue.begin(), this->CancelQueue.end(), [message](LogMessage& logMessage) {
-				return logMessage.OriginalMessage == message->Message.ToString() && logMessage.PlayerName == message->PlayerName.ToString();
-			});
-
-            if (it != this->CancelQueue.end()) {
-                message->Message = FS("");
-                message->PlayerName = FS("");
-                message->TimeStamp = FS("");
-                message->ChatChannel = 0;
-
-				this->CancelQueue.erase(it);
-                return;
-            }
-        }
-
-        auto it = std::find_if(this->FixQueue.begin(), this->FixQueue.end(), [message](LogMessage& logMessage) {
-            return logMessage.TranslatedMessage == message->Message.ToString() && logMessage.PlayerName == message->PlayerName.ToString();
-        });
-
-		if (it != this->FixQueue.end()) {
+            message->Message = FS("");
+            message->PlayerName = FS("");
+            message->TimeStamp = FS("");
+            message->ChatChannel = 0;
+        } else {
             message->ChatChannel = it->ChatChannel;
             message->Team = it->Team;
-
-			this->FixQueue.erase(it);
-		}
+        }
     });
 }
 

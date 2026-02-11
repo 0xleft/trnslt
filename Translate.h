@@ -130,7 +130,6 @@ void trnslt::GoogleTranslate(FGFxChatMessage* message) {
                     else
                         message.PlayerName = std::format("[{}] {}", logMessage.LangCode, logMessage.PlayerName);
 
-                    this->FixQueue.push_back(message);
                     gameWrapper->LogToChatbox(message.TranslatedMessage, message.PlayerName);
                 });
             }
